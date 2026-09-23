@@ -2,7 +2,7 @@
 
 ## Project context
 
-This repository contains production assets and helper tools for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `Klavistr/sedec-d11n`; keep OBS, overlay, CVXR, and 3D production assets here.
+This repository contains production assets and helper tools for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `Klavistr/sedec-d11n`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Browser-source pages served from the VPS belong in `Klavistr/sedec-web`.
 
 ## Before changing files
 
@@ -15,14 +15,15 @@ This repository contains production assets and helper tools for SEDEC livestream
 - Bootstrap: `make setup`
 - Repository checks: `make check`
 - Unit tests: `make test`
-- Overlay preview: `make serve`
+- Local fallback preview: `make serve`
 
 The helper tooling must continue to work with Python 3.11+ and the standard library unless a dependency is justified and documented.
 
 ## Conventions
 
 - Use kebab-case ASCII filenames unless an upstream application requires another name.
-- Keep browser overlays usable at 1920x1080 and responsive when practical.
+- Keep local fallback screens usable at 1920x1080 and responsive when practical.
+- Refer to deployed browser sources through stable `sedec-web` URLs, not GitHub raw URLs or sibling-repository paths.
 - Use repository-relative paths for OBS media references whenever OBS permits it.
 - Do not commit stream keys, credentials, personal data, caches, or machine-specific absolute paths.
 - Do not add large binaries until Git LFS is installed and the tracking policy is documented.
@@ -32,5 +33,4 @@ The helper tooling must continue to work with Python 3.11+ and the standard libr
 
 ## Verification
 
-Run `make check test` after changing repository structure or Python tooling. For an overlay change, also run `make serve` and inspect the affected page at its intended OBS viewport.
-
+Run `make check test` after changing repository structure or Python tooling. For a local fallback change, also run `make serve` and inspect the affected page at its intended OBS viewport.
