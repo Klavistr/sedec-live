@@ -1,0 +1,42 @@
+# macOS and editors
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# JavaScript (when an overlay eventually needs a build step)
+node_modules/
+
+# Generated media and application caches
+build/
+dist/
+output/
+renders/
+*.blend1
+*.blend2
+Library/
+Temp/
+Logs/
+obj/
+
+# OBS local state, logs, and recordings
+obs/.cache/
+obs/logs/
+recordings/
+
