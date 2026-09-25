@@ -2,7 +2,7 @@
 
 ## Project context
 
-This repository contains production assets and helper tools for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `Klavistr/sedec-d11n`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Browser-source pages served from the VPS belong in `Klavistr/sedec-web`.
+This repository contains production assets and helper tools used on the streaming operator's Mac for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `Klavistr/sedec-d11n`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Services, streaming infrastructure, and browser-source pages served from the VPS belong in `Klavistr/sedec-server`.
 
 ## Before changing files
 
@@ -23,7 +23,7 @@ The helper tooling must continue to work with Python 3.11+ and the standard libr
 
 - Use kebab-case ASCII filenames unless an upstream application requires another name.
 - Keep local fallback screens usable at 1920x1080 and responsive when practical.
-- Refer to deployed browser sources through stable `sedec-web` URLs, not GitHub raw URLs or sibling-repository paths.
+- Refer to deployed browser sources through stable `sedec-server` URLs, not GitHub raw URLs or sibling-repository paths.
 - Use repository-relative paths for OBS media references whenever OBS permits it.
 - Do not commit stream keys, credentials, personal data, caches, or machine-specific absolute paths.
 - Do not add large binaries until Git LFS is installed and the tracking policy is documented.
