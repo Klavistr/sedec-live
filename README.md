@@ -85,7 +85,7 @@ make serve
 - 編集可能なソースと書き出し物を区別し、書き出し手順を同じ場所に記録する
 - API キー、配信キー、個人情報をコミットしない
 - 大きなバイナリを追加する前に Git LFS の導入方針を決める（現在は未導入）
-- 配信運用の手順やチェックリストは `sedec-d11n`、配信担当者の Mac で使う OBS 設定とメディアはこのリポジトリ、VPS で動くサービスは `sedec-server` に置く
+- 配信運用の手順やチェックリストは `sedec-d11n`、配信端末で使う OBS 設定とメディアはこのリポジトリ、VPS で動くサービスは `sedec-server` に置く
 
 詳しい資産の扱いは [`docs/asset-guidelines.md`](docs/asset-guidelines.md)、次の作業候補は [`docs/work-plan.md`](docs/work-plan.md) を参照してください。Codex はルートの [`AGENTS.md`](AGENTS.md) に従います。
 

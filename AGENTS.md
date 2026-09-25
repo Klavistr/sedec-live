@@ -2,7 +2,7 @@
 
 ## Project context
 
-This repository contains production assets and helper tools used on the streaming operator's Mac for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `Klavistr/sedec-d11n`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Services, streaming infrastructure, and browser-source pages served from the VPS belong in `Klavistr/sedec-server`.
+This repository contains production assets and helper tools used on the local streaming workstation for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `Klavistr/sedec-d11n`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Services, streaming infrastructure, and browser-source pages served from the VPS belong in `Klavistr/sedec-server`.
 
 ## Before changing files
 
