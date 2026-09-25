@@ -2,7 +2,7 @@
 
 ## Project context
 
-This repository contains production assets and helper tools used on the streaming operator's Mac for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `operator documentation`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Services, streaming infrastructure, and browser-source pages served from the upstream server belong in `external streaming service`.
+This repository contains production assets and helper tools used on the local streaming workstation for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `operator documentation`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Services, streaming infrastructure, and browser-source pages served from the upstream server belong in `external streaming service`.
 
 ## Before changing files
 
