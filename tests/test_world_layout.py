@@ -1,0 +1,63 @@
+import json
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+LAYOUT_PATH = ROOT / "cvxr" / "sedec-school-world" / "design" / "layout.json"
+
+
+class WorldLayoutTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.layout = json.loads(LAYOUT_PATH.read_text(encoding="utf-8"))
+
+    def test_layout_uses_meter_scale(self):
+        self.assertEqual(self.layout["units"], "meters")
+        self.assertGreater(self.layout["dimensions"]["wallHeight"], 2.5)
+
+    def test_rooms_and_corridor_connect_at_declared_boundaries(self):
+        dimensions = self.layout["dimensions"]
+        self.assertEqual(dimensions["main"]["maxX"], dimensions["sub"]["minX"])
+        self.assertEqual(dimensions["main"]["maxX"], dimensions["corridor"]["minX"])
+        self.assertEqual(dimensions["corridor"]["maxY"], dimensions["sub"]["minY"])
+
+    def test_screens_are_sixteen_by_nine(self):
+        for screen in self.layout["screens"].values():
+            self.assertAlmostEqual(screen["width"] / screen["height"], 16 / 9, places=3)
+
+    def test_initial_seating_capacity_is_nontrivial(self):
+        furniture = self.layout["furniture"]
+        main_seats = (
+            len(furniture["main"]["tableColumns"])
+            * len(furniture["main"]["tableRows"])
+            * furniture["main"]["chairsPerTable"]
+        )
+        sub_seats = (
+            len(furniture["sub"]["tableCentersX"])
+            * furniture["sub"]["chairsPerLongSide"]
+            * 2
+            + 4
+        )
+        self.assertEqual(main_seats, 36)
+        self.assertEqual(sub_seats, 20)
+
+    def test_primary_spawn_is_inside_elevator_lobby(self):
+        lobby = self.layout["dimensions"]["elevatorLobby"]
+        spawn = self.layout["spawns"]["primary"]
+        x, y, _ = spawn["position"]
+        self.assertEqual(spawn["name"], "SPAWN_PRIMARY_EV")
+        self.assertLess(lobby["minX"], x)
+        self.assertLess(x, lobby["maxX"])
+        self.assertLess(lobby["minY"], y)
+        self.assertLess(y, lobby["maxY"])
+
+    def test_elevator_is_a_walkable_cabin(self):
+        lobby = self.layout["dimensions"]["elevatorLobby"]
+        self.assertGreaterEqual(lobby["maxX"] - lobby["minX"], 2.4)
+        self.assertGreaterEqual(lobby["maxY"] - lobby["minY"], 2.5)
+        self.assertGreaterEqual(lobby["height"], 3.0)
+
+
+if __name__ == "__main__":
+    unittest.main()
