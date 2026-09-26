@@ -488,9 +488,9 @@ def create_chair(name: str, location, rotation_z: float, style: str) -> bpy.type
     box(f"{name}_Seat", (0.0, 0.0, 0.5), (0.52, 0.52, 0.12), upholstery, target_collection="Furniture", parent=root, bevel=0.055)
     box(f"{name}_Pedestal", (0.0, 0.0, 0.25), (0.34, 0.34, 0.5), frame, target_collection="Furniture", parent=root, bevel=0.035)
     box(f"{name}_Back", (0.0, -0.23, 0.84), (0.52, 0.12, 0.68), upholstery, target_collection="Furniture", parent=root, bevel=0.055)
-    seat_point = empty("SeatPoint", (0.0, 0.0, 0.64), target_collection="Markers", parent=root)
+    seat_point = empty(f"{name}_SeatPoint", (0.0, 0.0, 0.64), target_collection="Markers", parent=root)
     seat_point["sedec_role"] = "sit-position"
-    exit_point = empty("ExitPoint", (0.0, -0.92, 0.0), target_collection="Markers", parent=root)
+    exit_point = empty(f"{name}_ExitPoint", (0.0, -0.92, 0.0), target_collection="Markers", parent=root)
     exit_point["sedec_role"] = "sit-exit"
     return root
 

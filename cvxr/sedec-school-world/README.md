@@ -67,12 +67,18 @@ make cvxr-world
 
 1. [公式セットアップページ](https://docs.chilloutvr.net/cck/setup/)から Unity **2022.3.58f1** を導入する
 2. `unity/` を同バージョンで開く
-3. ChilloutVR 公式配布の **CCK 4** をクリーンインポートする
-4. Unity メニューの `SEDEC > Build World Scene` を実行する
-5. `SEDEC > Attach Available CCK Components` を実行する
+3. ChilloutVR 公式配布の **CCK 4.0.1** をクリーンインポートする
+4. Unity メニューの `SEDEC > Build Complete CCK World` を実行する
+5. 必要なら `SEDEC > Validate World Scene` で構成を再検証する
 6. CCK の Builder で検証し、Local Test を行う
 
-この端末には現在 Unity 6000.5.0f1 しかないため、互換性を壊さないよう Unity プロジェクトはまだ開いていません。CCK 自体もリポジトリには含めません。
+この端末の Unity 2022.3.58f1（Apple Silicon）と Windows Build Support (Mono) で、プロジェクト読込、CCK コンパイル、シーン生成まで確認済みです。`Build Complete CCK World` は、EV スポーン、2 台の Video Player、全座席の着席アクションを再生成してから検証します。
+
+CCK は公式 Unity Package をローカル導入し、配布物そのものはリポジトリに含めません。確認に使用したパッケージは次の通りです。
+
+- Version: `4.0.1`
+- Source: `https://files.chilloutvr.net/cck/CCK_4.0.1_Release.unitypackage`
+- SHA-256: `2381461837ab5b18a82db456dcc3c34a8d85b8713d464e6da76530a770953517`
 
 ## 配信スクリーン
 
@@ -88,9 +94,9 @@ make cvxr-world
 - [x] EV 内の主スポーン、廊下の安全復帰位置、各部屋の制作時テスト位置
 - [x] EV 内装、開扉状態、閉扉目標・トリガー・到着音マーカー
 - [ ] `CVR Video Player` の実URL、同期、音声出力
-- [ ] `CVR Interactable` による着席
+- [x] `CVR Interactable` による着席
 - [ ] ドア、照明、配信音量の操作
 - [ ] CCK Local Test と複数人同期確認
 - [ ] ライトベイク、Occlusion Culling、LTCGI
 
-CCK コンポーネントのシリアライズ形式は配布パッケージ導入後に確定するため、初版では安全な取付位置まで生成します。
+配信の実 URL、エレベーター扉、照明操作など、運用や同期方式に依存する部分は引き続き Unity 側で仕上げます。
