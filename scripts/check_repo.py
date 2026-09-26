@@ -65,11 +65,7 @@ def check_required_directories(root: Path) -> list[Finding]:
 
 def check_json_files(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    obs_root = root / "obs"
-    if not obs_root.exists():
-        return findings
-
-    for path in sorted(obs_root.rglob("*.json")):
+    for path in sorted(file for file in iter_project_files(root) if file.suffix == ".json"):
         try:
             with path.open(encoding="utf-8-sig") as file:
                 json.load(file)
@@ -146,4 +142,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

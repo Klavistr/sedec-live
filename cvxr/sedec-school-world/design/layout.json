@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "units": "meters",
+  "sourcePlan": {
+    "name": "性DEC #6会場図.svg",
+    "usage": "relative room and furniture placement only",
+    "scaleKnown": false
+  },
+  "dimensions": {
+    "wallHeight": 5.0,
+    "wallThickness": 0.2,
+    "floorThickness": 0.2,
+    "doorHeight": 3.2,
+    "main": {
+      "minX": -8.0,
+      "maxX": 8.0,
+      "minY": -5.0,
+      "maxY": 14.5
+    },
+    "sub": {
+      "minX": 8.0,
+      "maxX": 25.0,
+      "minY": 4.0,
+      "maxY": 14.5
+    },
+    "corridor": {
+      "minX": 8.0,
+      "maxX": 25.0,
+      "minY": 1.5,
+      "maxY": 4.0
+    },
+    "elevatorLobby": {
+      "minX": 16.2,
+      "maxX": 18.8,
+      "minY": -1.4,
+      "maxY": 1.5,
+      "height": 3.3
+    }
+  },
+  "openings": {
+    "mainToCorridor": {
+      "axis": "x",
+      "wall": 8.0,
+      "min": 2.0,
+      "max": 3.6
+    },
+    "corridorToSub": {
+      "axis": "y",
+      "wall": 4.0,
+      "min": 10.0,
+      "max": 12.2
+    },
+    "elevator": {
+      "axis": "y",
+      "wall": 1.5,
+      "min": 16.4,
+      "max": 18.6
+    }
+  },
+  "furniture": {
+    "main": {
+      "tableColumns": [-3.1, 3.1],
+      "tableRows": [9.7, 7.9, 6.1, 4.3, 2.5, 0.7],
+      "tableSize": [5.2, 0.72, 0.76],
+      "chairsPerTable": 3
+    },
+    "sub": {
+      "tableCentersX": [10.7, 14.6, 18.5, 22.4],
+      "tableCenterY": 9.2,
+      "tableSize": [2.55, 1.2, 0.74],
+      "chairsPerLongSide": 2
+    }
+  },
+  "screens": {
+    "main": {
+      "center": [0.0, 14.26, 3.05],
+      "width": 6.4,
+      "height": 3.6,
+      "faces": "south"
+    },
+    "sub": {
+      "center": [24.76, 9.25, 3.05],
+      "width": 6.4,
+      "height": 3.6,
+      "faces": "west"
+    }
+  },
+  "spawns": {
+    "primary": {
+      "name": "SPAWN_PRIMARY_EV",
+      "position": [17.5, 0.0, 0.05],
+      "rotationDegrees": 0.0,
+      "purpose": "CVRWorld primary spawn; player arrives inside the elevator lobby facing the corridor"
+    },
+    "safeRespawn": {
+      "name": "RESPAWN_SAFE_CORRIDOR",
+      "position": [17.5, 2.6, 0.05],
+      "rotationDegrees": 0.0,
+      "purpose": "safe recovery position outside the elevator"
+    },
+    "testOnly": [
+      {
+        "name": "SPAWN_TEST_MAIN",
+        "position": [0.0, -3.5, 0.05],
+        "rotationDegrees": 0.0
+      },
+      {
+        "name": "SPAWN_TEST_SUB",
+        "position": [16.5, 5.2, 0.05],
+        "rotationDegrees": 0.0
+      }
+    ]
+  },
+  "materialSlots": {
+    "MAT_MAIN_WALL_PLASTER": "dark warm plaster",
+    "MAT_MAIN_FLOOR_STONE": "dark stone floor",
+    "MAT_MAIN_WOOD": "editable dark timber",
+    "MAT_MAIN_METAL": "aged brass",
+    "MAT_MAIN_UPHOLSTERY": "burgundy textile",
+    "MAT_SUB_WALL_IVORY": "warm white plaster",
+    "MAT_SUB_FLOOR_MARBLE": "pale floor",
+    "MAT_SUB_TRIM_WHITE": "painted ornamental timber",
+    "MAT_SUB_ACCENT_BLUE": "powder blue accent",
+    "MAT_SUB_UPHOLSTERY_ROSE": "dusty rose textile",
+    "MAT_CORRIDOR_WALL": "neutral transition wall",
+    "MAT_ELEVATOR_WOOD": "dark elevator cabin paneling",
+    "MAT_ELEVATOR_CARPET": "deep blue elevator floor",
+    "MAT_ELEVATOR_MIRROR": "reflective rear accent panel",
+    "MAT_SCREEN_PLACEHOLDER": "video render target placeholder"
+  }
+}

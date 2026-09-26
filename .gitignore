@@ -34,9 +34,16 @@ Library/
 Temp/
 Logs/
 obj/
+UserSettings/
+MemoryCaptures/
+*.csproj
+*.sln
+*.user
 
 # OBS local state, logs, and recordings
 obs/.cache/
 obs/logs/
 recordings/
 
+# Local CVXR configuration
+streaming.local.json
