@@ -40,6 +40,10 @@ MemoryCaptures/
 *.sln
 *.user
 
+# ChilloutVR CCK is installed locally from the official Unity package.
+cvxr/sedec-school-world/unity/Assets/CVR.CCK/
+cvxr/sedec-school-world/unity/Assets/CVR.CCK.meta
+
 # OBS local state, logs, and recordings
 obs/.cache/
 obs/logs/
