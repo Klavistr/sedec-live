@@ -8,7 +8,7 @@ OBS Studio のシーンと設定、画像・音声・映像、ローカル代替
 
 現在は、制作物を追加し始められるリポジトリ基盤と、最初の ChilloutVR ワールドの編集可能なブロックアウトまで整備済みです。OBS シーンコレクションと本番用メディアはまだ入っていません。
 
-ChilloutVR ワールドは [`cvxr/sedec-school-world/`](cvxr/sedec-school-world/) で制作しています。暗い講義室、白い自習室、接続廊下、家具、配信スクリーンの素体を Blender スクリプトから再生成できます。
+ChilloutVR ワールド **Castle of Ideas** は [`cvxr/castle-of-ideas/`](cvxr/castle-of-ideas/) で制作しています。暗い講義室、白い自習室、接続廊下、家具、配信スクリーンの素体を Blender スクリプトから再生成できます。
 
 最初のマイルストーンは、次の最小配信パックを作ることです。
 

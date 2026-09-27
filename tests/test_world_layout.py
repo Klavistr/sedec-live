@@ -4,7 +4,17 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-LAYOUT_PATH = ROOT / "cvxr" / "sedec-school-world" / "design" / "layout.json"
+WORLD_PATH = ROOT / "cvxr" / "castle-of-ideas"
+LAYOUT_PATH = WORLD_PATH / "design" / "layout.json"
+GENERATED_OR_EXTERNAL_PARTS = {
+    "CVR.CCK",
+    "Library",
+    "Logs",
+    "Temp",
+    "UserSettings",
+    "__pycache__",
+    "build",
+}
 
 
 class WorldLayoutTest(unittest.TestCase):
@@ -57,6 +67,21 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertGreaterEqual(lobby["maxX"] - lobby["minX"], 2.4)
         self.assertGreaterEqual(lobby["maxY"] - lobby["minY"], 2.5)
         self.assertGreaterEqual(lobby["height"], 3.0)
+
+    def test_generic_world_assets_do_not_contain_sedec_branding(self):
+        intentional_integration_notes = {Path("README.md")}
+
+        for path in WORLD_PATH.rglob("*"):
+            relative = path.relative_to(WORLD_PATH)
+            if any(part in GENERATED_OR_EXTERNAL_PARTS for part in relative.parts):
+                continue
+            if relative in intentional_integration_notes:
+                continue
+
+            self.assertNotIn("sedec", str(relative).lower())
+            if path.is_file():
+                position = path.read_bytes().lower().find(b"sedec")
+                self.assertEqual(position, -1, str(relative))
 
 
 if __name__ == "__main__":

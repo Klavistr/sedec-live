@@ -40,9 +40,13 @@ MemoryCaptures/
 *.sln
 *.user
 
+# Unity editor UI state
+**/ProjectSettings/PackageManagerSettings.asset
+**/ProjectSettings/CCK/saved_scene_expansion_info.json
+
 # ChilloutVR CCK is installed locally from the official Unity package.
-cvxr/sedec-school-world/unity/Assets/CVR.CCK/
-cvxr/sedec-school-world/unity/Assets/CVR.CCK.meta
+cvxr/castle-of-ideas/unity/Assets/CVR.CCK/
+cvxr/castle-of-ideas/unity/Assets/CVR.CCK.meta
 
 # OBS local state, logs, and recordings
 obs/.cache/

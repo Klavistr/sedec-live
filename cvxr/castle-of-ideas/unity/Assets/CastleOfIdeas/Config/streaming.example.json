@@ -1,0 +1,7 @@
+{
+  "mainScreenUrl": "https://stream.example.invalid/castle-of-ideas/main/playlist.m3u8",
+  "subScreenUrl": "https://stream.example.invalid/castle-of-ideas/sub/playlist.m3u8",
+  "networkSync": true,
+  "playOnAwake": false,
+  "notes": "Copy to a local, ignored configuration after stream URLs are finalized. Do not commit credentials or signed URLs."
+}
