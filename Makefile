@@ -2,7 +2,7 @@ PYTHON ?= python3
 VENV := .venv
 VENV_PYTHON := $(VENV)/bin/python
 BLENDER ?= /Applications/Blender.app/Contents/MacOS/Blender
-CVXR_WORLD := cvxr/sedec-school-world
+CVXR_WORLD := cvxr/castle-of-ideas
 
 .PHONY: setup check test serve cvxr-world clean
 
@@ -24,8 +24,8 @@ serve: setup
 cvxr-world:
 	"$(BLENDER)" --background --factory-startup \
 		--python $(CVXR_WORLD)/blender/generate_world.py -- \
-		--output $(CVXR_WORLD)/blender/sedec-school-world.blend \
-		--export-fbx $(CVXR_WORLD)/unity/Assets/SEDECWorld/Models/sedec-school-world.fbx \
+		--output $(CVXR_WORLD)/blender/castle-of-ideas.blend \
+		--export-fbx $(CVXR_WORLD)/unity/Assets/CastleOfIdeas/Models/castle-of-ideas.fbx \
 		--render $(CVXR_WORLD)/preview/blockout.png \
 		--render-elevator $(CVXR_WORLD)/preview/elevator-interior.png
 

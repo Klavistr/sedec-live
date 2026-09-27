@@ -6,6 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/SEDECWorld/Scenes/SEDEC-School-World.unity
+    path: Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity
     guid: b23ff823e28fb4f56ad7d08a97617357
   m_configObjects: {}

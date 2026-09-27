@@ -1,4 +1,4 @@
-"""Generate the editable SEDEC ChilloutVR world blockout.
+"""Generate the editable Castle of Ideas ChilloutVR world blockout.
 
 Run with Blender, not regular Python. Geometry is intentionally primitive and
 material-slot driven so dimensions and textures can be replaced without
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument(
-        "--output", type=Path, default=SCRIPT_DIR / "sedec-school-world.blend"
+        "--output", type=Path, default=SCRIPT_DIR / "castle-of-ideas.blend"
     )
     parser.add_argument("--export-fbx", type=Path)
     parser.add_argument("--render", type=Path)
@@ -352,17 +352,17 @@ def create_architecture(config: dict) -> None:
         "ELEVATOR_DOOR_LEFT_CLOSED",
         (16.95, 1.42, 1.45),
         target_collection="Gimmicks",
-    )["sedec_role"] = "door-closed-target"
+    )["castle_of_ideas_role"] = "door-closed-target"
     empty(
         "ELEVATOR_DOOR_RIGHT_CLOSED",
         (18.05, 1.42, 1.45),
         target_collection="Gimmicks",
-    )["sedec_role"] = "door-closed-target"
+    )["castle_of_ideas_role"] = "door-closed-target"
     empty(
         "ELEVATOR_DOOR_TRIGGER",
         (17.5, 1.05, 1.0),
         target_collection="Gimmicks",
-    )["sedec_role"] = "door-trigger"
+    )["castle_of_ideas_role"] = "door-trigger"
 
     # Cabin paneling bridges the dark lecture hall and bright literary salon.
     box(
@@ -439,7 +439,7 @@ def create_architecture(config: dict) -> None:
         "ELEVATOR_DING_AUDIO",
         (17.5, 1.2, 2.65),
         target_collection="Gimmicks",
-    )["sedec_role"] = "audio-source-placeholder"
+    )["castle_of_ideas_role"] = "audio-source-placeholder"
 
     create_arch_frame("ARCH_MAIN_CORRIDOR", (8.0, 2.8, 0.0), 1.6, dims["doorHeight"], "x", "MAT_MAIN_WOOD")
     create_arch_frame("ARCH_CORRIDOR_SUB", (11.1, 4.0, 0.0), 2.2, dims["doorHeight"], "y", "MAT_SUB_TRIM_WHITE")
@@ -464,7 +464,7 @@ def create_table(name: str, center, size, style: str) -> bpy.types.Object:
     mat = "MAT_MAIN_WOOD" if style == "main" else "MAT_SUB_TRIM_WHITE"
     accent = "MAT_MAIN_METAL" if style == "main" else "MAT_SUB_ACCENT_BLUE"
     root = empty(name, center, target_collection="Furniture")
-    root["sedec_role"] = "table"
+    root["castle_of_ideas_role"] = "table"
     width, depth, height = size
     box(f"{name}_Top", (0.0, 0.0, height), (width, depth, 0.12), mat, target_collection="Furniture", parent=root, bevel=0.05)
     inset_x = width / 2 - 0.22
@@ -483,15 +483,15 @@ def create_chair(name: str, location, rotation_z: float, style: str) -> bpy.type
     frame = "MAT_MAIN_WOOD" if style == "main" else "MAT_SUB_TRIM_WHITE"
     upholstery = "MAT_MAIN_UPHOLSTERY" if style == "main" else "MAT_SUB_UPHOLSTERY_ROSE"
     root = empty(name, location, rotation_z, target_collection="Furniture")
-    root["sedec_role"] = "seat"
-    root["sedec_gimmick"] = "CVRInteractable.SitAtPosition"
+    root["castle_of_ideas_role"] = "seat"
+    root["castle_of_ideas_gimmick"] = "CVRInteractable.SitAtPosition"
     box(f"{name}_Seat", (0.0, 0.0, 0.5), (0.52, 0.52, 0.12), upholstery, target_collection="Furniture", parent=root, bevel=0.055)
     box(f"{name}_Pedestal", (0.0, 0.0, 0.25), (0.34, 0.34, 0.5), frame, target_collection="Furniture", parent=root, bevel=0.035)
     box(f"{name}_Back", (0.0, -0.23, 0.84), (0.52, 0.12, 0.68), upholstery, target_collection="Furniture", parent=root, bevel=0.055)
     seat_point = empty(f"{name}_SeatPoint", (0.0, 0.0, 0.64), target_collection="Markers", parent=root)
-    seat_point["sedec_role"] = "sit-position"
+    seat_point["castle_of_ideas_role"] = "sit-position"
     exit_point = empty(f"{name}_ExitPoint", (0.0, -0.92, 0.0), target_collection="Markers", parent=root)
-    exit_point["sedec_role"] = "sit-exit"
+    exit_point["castle_of_ideas_role"] = "sit-exit"
     return root
 
 
@@ -567,10 +567,10 @@ def create_screen(name: str, screen: dict) -> None:
         ):
             box(f"SCREEN_{name}_FRAME_{suffix}", (x - 0.02, sy, sz), size, frame_mat, target_collection="Screens", bevel=0.02)
     surface = bpy.data.objects[f"SCREEN_{name}_SURFACE"]
-    surface["sedec_role"] = "video-surface"
+    surface["castle_of_ideas_role"] = "video-surface"
     surface["stream_slot"] = name.lower()
     player = empty(f"SCREEN_{name}_PLAYER", (x, y, z), target_collection="Screens")
-    player["sedec_role"] = "cvr-video-player"
+    player["castle_of_ideas_role"] = "cvr-video-player"
     player["stream_slot"] = name.lower()
 
 
@@ -591,11 +591,11 @@ def create_lighting() -> None:
     for index, (x, y) in enumerate(((-4.2, 11.0), (4.2, 11.0), (-4.2, 6.0), (4.2, 6.0), (-4.2, 1.0), (4.2, 1.0)), start=1):
         cylinder(f"MAIN_LANTERN_{index:02d}", (x, y, 4.2), 0.16, 0.5, "MAT_LIGHT_WARM", target_collection="Lighting")
         light = add_light(f"MAIN_LIGHT_{index:02d}", (x, y, 4.0), (1.0, 0.32, 0.08), 520.0)
-        light["sedec_group"] = "main-room-lights"
+        light["castle_of_ideas_group"] = "main-room-lights"
     for index, x in enumerate((10.8, 14.6, 18.5, 22.3), start=1):
         cylinder(f"SUB_PENDANT_{index:02d}", (x, 9.2, 4.15), 0.2, 0.25, "MAT_LIGHT_COOL", target_collection="Lighting")
         light = add_light(f"SUB_LIGHT_{index:02d}", (x, 9.2, 4.0), (0.74, 0.88, 1.0), 700.0)
-        light["sedec_group"] = "sub-room-lights"
+        light["castle_of_ideas_group"] = "sub-room-lights"
     add_light("PREVIEW_FILL_MAIN", (0.0, 5.0, 8.0), (1.0, 0.62, 0.38), 1100.0, "AREA", 8.0)
     add_light("PREVIEW_FILL_SUB", (17.0, 9.0, 8.0), (0.72, 0.85, 1.0), 1400.0, "AREA", 8.0)
     elevator_light = add_light(
@@ -606,9 +606,9 @@ def create_lighting() -> None:
         "AREA",
         1.4,
     )
-    elevator_light["sedec_group"] = "elevator-lights"
-    empty("SWITCH_MAIN_LIGHTS", (7.65, 2.0, 1.35), target_collection="Gimmicks")["sedec_role"] = "light-switch"
-    empty("SWITCH_SUB_LIGHTS", (10.0, 4.25, 1.35), target_collection="Gimmicks")["sedec_role"] = "light-switch"
+    elevator_light["castle_of_ideas_group"] = "elevator-lights"
+    empty("SWITCH_MAIN_LIGHTS", (7.65, 2.0, 1.35), target_collection="Gimmicks")["castle_of_ideas_role"] = "light-switch"
+    empty("SWITCH_SUB_LIGHTS", (10.0, 4.25, 1.35), target_collection="Gimmicks")["castle_of_ideas_role"] = "light-switch"
 
 
 def create_markers(config: dict) -> None:
@@ -638,14 +638,14 @@ def create_markers(config: dict) -> None:
     )
     for name, location, rotation, role in markers:
         marker = empty(name, location, rotation, target_collection="Markers", display="ARROWS")
-        marker["sedec_role"] = role
+        marker["castle_of_ideas_role"] = role
 
 
 def configure_scene(config: dict) -> None:
     scene = bpy.context.scene
-    scene.name = "SEDEC_School_World"
-    scene["sedec_layout_schema"] = config["schemaVersion"]
-    scene["sedec_units"] = config["units"]
+    scene.name = "Castle_of_Ideas"
+    scene["castle_of_ideas_layout_schema"] = config["schemaVersion"]
+    scene["castle_of_ideas_units"] = config["units"]
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.length_unit = "METERS"
     scene.unit_settings.scale_length = 1.0
@@ -754,10 +754,17 @@ def main() -> None:
 
     output_path = args.output.expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
 
+    # Export and render before saving the .blend so Blender does not embed the
+    # workstation's absolute source path in FBX or PNG metadata.
     if args.export_fbx:
         export_fbx(args.export_fbx.expanduser().resolve())
+
+    camera = bpy.context.scene.camera
+    camera_matrix = camera.matrix_world.copy()
+    camera_type = camera.data.type
+    camera_lens = camera.data.lens
+    camera_clip_start = camera.data.clip_start
     if args.render:
         render_path = args.render.expanduser().resolve()
         render_path.parent.mkdir(parents=True, exist_ok=True)
@@ -766,7 +773,14 @@ def main() -> None:
     if args.render_elevator:
         render_elevator_closeup(args.render_elevator.expanduser().resolve())
 
-    print(f"SEDEC world generated: {output_path}")
+    camera.matrix_world = camera_matrix
+    camera.data.type = camera_type
+    camera.data.lens = camera_lens
+    camera.data.clip_start = camera_clip_start
+    bpy.context.scene.render.filepath = ""
+    bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
+
+    print(f"Castle of Ideas generated: {output_path}")
 
 
 if __name__ == "__main__":

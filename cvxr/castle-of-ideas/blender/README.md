@@ -10,4 +10,4 @@
 
 スクリプトを再実行すると `.blend` と FBX は上書きされます。Blender で直接行った変更を残す場合は、別名ファイルまたは別ブランチへ保存してください。
 
-生成 FBX は Unity の `Assets/SEDECWorld/Models/` に出力されます。Unity 側で作った Material やシーンはFBXの外に置き、再生成で消えないようにします。
+生成 FBX は Unity の `Assets/CastleOfIdeas/Models/` に出力されます。Unity 側で作った Material やシーンはFBXの外に置き、再生成で消えないようにします。

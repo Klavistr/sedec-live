@@ -9,15 +9,15 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
-namespace Sedec.World.Editor
+namespace CastleOfIdeas.Editor
 {
-    public static class SEDECWorldSetup
+    public static class CastleOfIdeasWorldSetup
     {
-        private const string ModelPath = "Assets/SEDECWorld/Models/sedec-school-world.fbx";
-        private const string GeneratedPath = "Assets/SEDECWorld/Generated";
-        private const string ScenePath = "Assets/SEDECWorld/Scenes/SEDEC-School-World.unity";
+        private const string ModelPath = "Assets/CastleOfIdeas/Models/castle-of-ideas.fbx";
+        private const string GeneratedPath = "Assets/CastleOfIdeas/Generated";
+        private const string ScenePath = "Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity";
 
-        [MenuItem("SEDEC/Build Complete CCK World")]
+        [MenuItem("Castle of Ideas/Build Complete CCK World")]
         public static void BuildCompleteCckWorld()
         {
             BuildWorldScene();
@@ -27,7 +27,49 @@ namespace Sedec.World.Editor
             ValidateWorldScene();
         }
 
-        [MenuItem("SEDEC/Build World Scene")]
+        [MenuItem("Castle of Ideas/Repair PlayMode Preview Camera")]
+        public static void RepairPlayModePreviewCamera()
+        {
+            if (SceneManager.GetActiveScene().path != ScenePath)
+            {
+                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
+
+            var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
+            var descriptor = worldRoot == null
+                ? null
+                : FindDeepChild(worldRoot.transform, "CVR_WORLD_DESCRIPTOR");
+            var worldType = FindComponentType("CVRWorld");
+            var worldComponent = descriptor == null || worldType == null
+                ? null
+                : descriptor.GetComponent(worldType);
+            var primarySpawn = worldRoot == null
+                ? null
+                : FindDeepChild(worldRoot.transform, "SPAWN_PRIMARY_EV");
+            var safeRespawn = worldRoot == null
+                ? null
+                : FindDeepChild(worldRoot.transform, "RESPAWN_SAFE_CORRIDOR");
+            if (
+                worldRoot == null
+                || worldComponent == null
+                || primarySpawn == null
+                || safeRespawn == null
+            )
+            {
+                throw new InvalidOperationException(
+                    "The generated world, CVRWorld descriptor, EV spawn, or corridor marker is missing."
+                );
+            }
+
+            NormalizePrimarySpawn(primarySpawn, safeRespawn);
+            ConfigureReferenceCamera(worldRoot.transform, primarySpawn, worldComponent);
+            CreateUnityLights(worldRoot.transform);
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
+            ValidateWorldScene();
+        }
+
+        [MenuItem("Castle of Ideas/Build World Scene")]
         public static void BuildWorldScene()
         {
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
@@ -45,7 +87,7 @@ namespace Sedec.World.Editor
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var worldRoot = new GameObject("SEDEC_WORLD_ROOT");
+            var worldRoot = new GameObject("CASTLE_OF_IDEAS_WORLD_ROOT");
             var model = PrefabUtility.InstantiatePrefab(source) as GameObject;
             if (model == null)
             {
@@ -60,18 +102,18 @@ namespace Sedec.World.Editor
             CreateUnityLights(worldRoot.transform);
             CreateSetupNotes(worldRoot.transform);
 
-            EnsureAssetFolder("Assets/SEDECWorld/Scenes");
+            EnsureAssetFolder("Assets/CastleOfIdeas/Scenes");
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Selection.activeGameObject = worldRoot;
-            Debug.Log($"SEDEC world scene created at {ScenePath}");
+            Debug.Log($"Castle of Ideas scene created at {ScenePath}");
         }
 
-        [MenuItem("SEDEC/Attach Available CCK Components")]
+        [MenuItem("Castle of Ideas/Attach Available CCK Components")]
         public static void AttachAvailableCckComponents()
         {
-            var worldRoot = GameObject.Find("SEDEC_WORLD_ROOT");
+            var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
             if (worldRoot == null)
             {
                 throw new InvalidOperationException("Build the world scene before attaching CCK components.");
@@ -98,9 +140,12 @@ namespace Sedec.World.Editor
             var descriptor = FindOrCreate(worldRoot.transform, "CVR_WORLD_DESCRIPTOR");
             var worldComponent = AddComponentIfMissing(descriptor, worldType);
             var primarySpawn = FindDeepChild(worldRoot.transform, "SPAWN_PRIMARY_EV");
+            var safeRespawn = FindDeepChild(worldRoot.transform, "RESPAWN_SAFE_CORRIDOR");
+            NormalizePrimarySpawn(primarySpawn, safeRespawn);
             TryAssignPrimarySpawn(worldComponent, primarySpawn);
             TrySetEnumField(worldComponent, "spawnRule", "Sequential");
             TrySetField(worldComponent, "spawnRadius", 0.25f);
+            ConfigureReferenceCamera(worldRoot.transform, primarySpawn, worldComponent);
 
             AttachVideoPlayer(worldRoot.transform, "SCREEN_MAIN_PLAYER", "MainScreen.renderTexture", playerType);
             AttachVideoPlayer(worldRoot.transform, "SCREEN_SUB_PLAYER", "SubScreen.renderTexture", playerType);
@@ -135,7 +180,7 @@ namespace Sedec.World.Editor
             );
         }
 
-        [MenuItem("SEDEC/Validate World Scene")]
+        [MenuItem("Castle of Ideas/Validate World Scene")]
         public static void ValidateWorldScene()
         {
             if (SceneManager.GetActiveScene().path != ScenePath)
@@ -144,10 +189,12 @@ namespace Sedec.World.Editor
             }
 
             var errors = new List<string>();
-            var worldRoot = GameObject.Find("SEDEC_WORLD_ROOT");
+            var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
             if (worldRoot == null)
             {
-                throw new InvalidOperationException("SEDEC_WORLD_ROOT is missing from the generated scene.");
+                throw new InvalidOperationException(
+                    "CASTLE_OF_IDEAS_WORLD_ROOT is missing from the generated scene."
+                );
             }
 
             if (!EditorBuildSettings.scenes.Any(item => item.enabled && item.path == ScenePath))
@@ -164,11 +211,36 @@ namespace Sedec.World.Editor
             }
 
             var primarySpawn = FindDeepChild(worldRoot.transform, "SPAWN_PRIMARY_EV");
+            var safeRespawn = FindDeepChild(worldRoot.transform, "RESPAWN_SAFE_CORRIDOR");
             var descriptor = FindDeepChild(worldRoot.transform, "CVR_WORLD_DESCRIPTOR");
             var worldComponent = descriptor == null ? null : descriptor.GetComponent(worldType);
             if (worldComponent == null || !CollectionFieldContains(worldComponent, "spawns", primarySpawn?.gameObject))
             {
                 errors.Add("CVRWorld does not use SPAWN_PRIMARY_EV as its spawn point.");
+            }
+            if (primarySpawn != null && Vector3.Dot(primarySpawn.up, Vector3.up) < 0.999f)
+            {
+                errors.Add("SPAWN_PRIMARY_EV is not upright in Unity coordinates.");
+            }
+            if (primarySpawn != null && safeRespawn != null)
+            {
+                var corridorDirection = safeRespawn.position - primarySpawn.position;
+                corridorDirection.y = 0f;
+                if (
+                    corridorDirection.sqrMagnitude < 0.0001f
+                    || Vector3.Dot(primarySpawn.forward, corridorDirection.normalized) < 0.999f
+                )
+                {
+                    errors.Add("SPAWN_PRIMARY_EV does not face the corridor.");
+                }
+            }
+            var referenceCameraObject = GetFieldValue(worldComponent, "referenceCamera") as GameObject;
+            var referenceCamera = referenceCameraObject == null
+                ? null
+                : referenceCameraObject.GetComponent<Camera>();
+            if (referenceCamera == null || !referenceCamera.enabled)
+            {
+                errors.Add("CVRWorld has no enabled reference camera for PlayMode preview.");
             }
 
             var videoPlayers = worldRoot.GetComponentsInChildren(playerType, true);
@@ -212,13 +284,82 @@ namespace Sedec.World.Editor
 
             if (errors.Count > 0)
             {
-                throw new InvalidOperationException("SEDEC world validation failed:\n- " + string.Join("\n- ", errors));
+                throw new InvalidOperationException(
+                    "Castle of Ideas validation failed:\n- " + string.Join("\n- ", errors)
+                );
             }
 
             Debug.Log(
-                $"SEDEC world validation passed: 1 EV spawn, {videoPlayers.Length} video players, " +
+                $"Castle of Ideas validation passed: 1 EV spawn, 1 reference camera, " +
+                $"{videoPlayers.Length} video players, " +
                 $"and {configuredSeatCount} seats."
             );
+        }
+
+        private static void ConfigureReferenceCamera(
+            Transform worldRoot,
+            Transform primarySpawn,
+            Component worldComponent
+        )
+        {
+            if (primarySpawn == null)
+            {
+                throw new InvalidOperationException(
+                    "SPAWN_PRIMARY_EV is required before creating the reference camera."
+                );
+            }
+
+            var cameraObject = FindOrCreate(worldRoot, "WORLD_REFERENCE_CAMERA");
+            cameraObject.tag = "MainCamera";
+            cameraObject.transform.position = primarySpawn.position + Vector3.up * 1.65f;
+            cameraObject.transform.rotation = primarySpawn.rotation;
+
+            var camera = cameraObject.GetComponent<Camera>();
+            if (!camera)
+            {
+                camera = cameraObject.AddComponent<Camera>();
+            }
+            camera.enabled = true;
+            camera.clearFlags = CameraClearFlags.Skybox;
+            camera.fieldOfView = 70f;
+            camera.nearClipPlane = 0.05f;
+            camera.farClipPlane = 250f;
+            camera.depth = -100f;
+
+            TrySetField(worldComponent, "referenceCamera", cameraObject);
+            EditorUtility.SetDirty(camera);
+        }
+
+        private static void NormalizePrimarySpawn(
+            Transform primarySpawn,
+            Transform safeRespawn
+        )
+        {
+            if (primarySpawn == null)
+            {
+                throw new InvalidOperationException("SPAWN_PRIMARY_EV was not found.");
+            }
+            if (safeRespawn == null)
+            {
+                throw new InvalidOperationException("RESPAWN_SAFE_CORRIDOR was not found.");
+            }
+
+            // Blender FBX empties inherit a -90 degree X-axis conversion. CVR spawn
+            // transforms need an upright Unity rotation. Derive yaw from the safe
+            // corridor marker so it remains correct if the floor plan is edited.
+            var corridorDirection = safeRespawn.position - primarySpawn.position;
+            corridorDirection.y = 0f;
+            if (corridorDirection.sqrMagnitude < 0.0001f)
+            {
+                throw new InvalidOperationException(
+                    "RESPAWN_SAFE_CORRIDOR must not overlap SPAWN_PRIMARY_EV."
+                );
+            }
+            primarySpawn.rotation = Quaternion.LookRotation(
+                corridorDirection.normalized,
+                Vector3.up
+            );
+            EditorUtility.SetDirty(primarySpawn);
         }
 
         private static void ConfigureGeometry(GameObject model)
@@ -593,21 +734,24 @@ namespace Sedec.World.Editor
 
         private static void CreateUnityLights(Transform root)
         {
-            var lighting = new GameObject("UNITY_LIGHTING");
-            lighting.transform.SetParent(root, false);
+            var lighting = FindOrCreate(root, "UNITY_LIGHTING");
             var lights = new List<(string Name, Vector3 Position, Color Color, float Intensity, float Range)>
             {
-                ("Main Warm Fill", new Vector3(0f, 3.7f, 4.2f), new Color(1f, 0.55f, 0.28f), 2.2f, 18f),
-                ("Sub Cool Fill", new Vector3(16.5f, 9.2f, 4.2f), new Color(0.75f, 0.88f, 1f), 2.6f, 16f),
-                ("Corridor Fill", new Vector3(17.5f, 2.7f, 3.2f), new Color(0.9f, 0.72f, 0.58f), 1.2f, 10f),
-                ("Elevator Cabin", new Vector3(17.5f, 0f, 2.85f), new Color(0.68f, 0.84f, 1f), 1.8f, 5f)
+                // The FBX importer maps Blender (x, y, z) to Unity (-x, z, y).
+                ("Main Warm Fill", new Vector3(0f, 4.2f, 3.7f), new Color(1f, 0.55f, 0.28f), 2.2f, 18f),
+                ("Sub Cool Fill", new Vector3(-16.5f, 4.2f, 9.2f), new Color(0.75f, 0.88f, 1f), 2.6f, 16f),
+                ("Corridor Fill", new Vector3(-17.5f, 3.2f, 2.7f), new Color(0.9f, 0.72f, 0.58f), 1.2f, 10f),
+                ("Elevator Cabin", new Vector3(-17.5f, 2.85f, 0f), new Color(0.68f, 0.84f, 1f), 1.8f, 5f)
             };
             foreach (var definition in lights)
             {
-                var lightObject = new GameObject(definition.Name);
-                lightObject.transform.SetParent(lighting.transform, false);
+                var lightObject = FindOrCreate(lighting.transform, definition.Name);
                 lightObject.transform.localPosition = definition.Position;
-                var light = lightObject.AddComponent<Light>();
+                var light = lightObject.GetComponent<Light>();
+                if (!light)
+                {
+                    light = lightObject.AddComponent<Light>();
+                }
                 light.type = LightType.Point;
                 light.color = definition.Color;
                 light.intensity = definition.Intensity;
@@ -645,11 +789,11 @@ namespace Sedec.World.Editor
         }
     }
 
-    public sealed class SEDECWorldModelImporter : AssetPostprocessor
+    public sealed class CastleOfIdeasWorldModelImporter : AssetPostprocessor
     {
         private void OnPreprocessModel()
         {
-            if (!assetPath.EndsWith("Assets/SEDECWorld/Models/sedec-school-world.fbx"))
+            if (!assetPath.EndsWith("Assets/CastleOfIdeas/Models/castle-of-ideas.fbx"))
             {
                 return;
             }
@@ -659,6 +803,8 @@ namespace Sedec.World.Editor
             importer.importCameras = false;
             importer.importLights = false;
             importer.importAnimation = false;
+            importer.importBlendShapes = false;
+            importer.importBlendShapeNormals = ModelImporterNormals.None;
             importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
         }
     }
