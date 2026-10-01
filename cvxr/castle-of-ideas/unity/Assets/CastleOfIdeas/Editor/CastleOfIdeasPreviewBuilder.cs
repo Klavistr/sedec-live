@@ -230,9 +230,13 @@ This is an offline Local Test preview. Other players cannot join it, and network
 features are unavailable. The published multiplayer version is distributed through
 ChilloutVR itself rather than this ZIP package.
 
-No private HLS viewer URL is included in this public preview. The main and sub lecture
-screens share one idle program player. The purple portal in the white salon is a visual
-and integration scaffold; its future low-latency bridge is not connected yet.
+No private HLS viewer URL is included in this preview. Enter an HTTPS .m3u8 receiver
+URL on the PROGRAM FEED CONTROL panel after entering the world. The main and sub
+lecture screens share one program player. Use Reload if the HLS feed was not ready
+when first applied. Per-user volume trim is available from -60 dB through +12 dB.
+
+The purple portal is on the rear wall opposite the white salon screen. It remains a
+visual and integration scaffold; its future low-latency bridge is not connected yet.
 ";
         }
 
@@ -246,6 +250,8 @@ and integration scaffold; its future low-latency bridge is not connected yet.
   ""cckVersion"": ""{cckVersion}"",
   ""programVideoPlayers"": 1,
   ""linkedLectureScreens"": 2,
+  ""runtimeReceiverUrlInput"": true,
+  ""volumeTrimDb"": [-60, 12],
   ""portalStatus"": ""scaffold-only"",
   ""builtAtUtc"": ""{DateTime.UtcNow:O}""
 }}

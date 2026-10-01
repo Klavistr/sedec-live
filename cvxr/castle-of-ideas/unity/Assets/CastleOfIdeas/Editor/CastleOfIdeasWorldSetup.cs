@@ -7,8 +7,10 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace CastleOfIdeas.Editor
 {
@@ -17,21 +19,13 @@ namespace CastleOfIdeas.Editor
         private const string ModelPath = "Assets/CastleOfIdeas/Models/castle-of-ideas.fbx";
         private const string GeneratedPath = "Assets/CastleOfIdeas/Generated";
         private const string ScenePath = "Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity";
-        private const string LocalStreamingConfigPath =
-            "Assets/CastleOfIdeas/Config/streaming.local.json";
+        private const string ProgramControlsLuaPath =
+            "Assets/CastleOfIdeas/Scripts/program-media-controls.lua";
+        private const string ProgramAudioMixerPath =
+            "Assets/CastleOfIdeas/Generated/ProgramAudio.mixer";
         private const string ProgramRenderTextureName = "ProgramFeed.renderTexture";
         private const string StableLocalEditorIdentifier =
             "62b20d81-a4fa-4a0d-bad0-34fed1cb476d";
-
-        [Serializable]
-        private sealed class StreamingConfig
-        {
-            public int schemaVersion;
-            public string programHlsUrl;
-            public bool autoplay;
-            public bool interactiveUi;
-            public float playbackVolume = 1f;
-        }
 
         private sealed class WorldIdentity
         {
@@ -43,6 +37,7 @@ namespace CastleOfIdeas.Editor
         public static void BuildCompleteCckWorld()
         {
             var identity = CaptureWorldIdentity();
+            EnsureProgramAudioMixer();
             BuildWorldScene();
             AttachAvailableCckComponents(identity);
             AssetDatabase.SaveAssets();
@@ -87,35 +82,6 @@ namespace CastleOfIdeas.Editor
             NormalizePrimarySpawn(primarySpawn, safeRespawn);
             ConfigureReferenceCamera(worldRoot.transform, primarySpawn, worldComponent);
             CreateUnityLights(worldRoot.transform);
-            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
-            ValidateWorldScene();
-        }
-
-        [MenuItem("Castle of Ideas/Apply Local Streaming Configuration")]
-        public static void ApplyLocalStreamingConfigurationFromMenu()
-        {
-            if (SceneManager.GetActiveScene().path != ScenePath)
-            {
-                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            }
-
-            var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
-            var playerType = FindComponentType("CVRVideoPlayer");
-            var playerMarker = worldRoot == null
-                ? null
-                : FindDeepChild(worldRoot.transform, "PROGRAM_FEED_PLAYER");
-            var player = playerMarker == null || playerType == null
-                ? null
-                : playerMarker.GetComponent(playerType);
-            if (player == null)
-            {
-                throw new InvalidOperationException(
-                    "Build the complete CCK world before applying streaming.local.json."
-                );
-            }
-
-            ApplyLocalStreamingConfiguration(player, true);
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
             ValidateWorldScene();
@@ -224,7 +190,14 @@ namespace CastleOfIdeas.Editor
             {
                 throw new InvalidOperationException("PROGRAM_FEED_PLAYER was not found in the model.");
             }
-            ApplyLocalStreamingConfiguration(programPlayer, false);
+            ConfigureProgramAudio(programPlayer);
+            ConfigureProgramControlPanel(
+                worldRoot.transform,
+                programPlayer,
+                interactableType,
+                actionType,
+                operationType
+            );
 
             var seatCount = 0;
             foreach (var transform in worldRoot.GetComponentsInChildren<Transform>(true))
@@ -352,6 +325,28 @@ namespace CastleOfIdeas.Editor
             {
                 errors.Add("The shared CVRVideoPlayer is not attached to PROGRAM_FEED_PLAYER.");
             }
+            var playOnAwakeObject = programPlayer == null
+                ? null
+                : GetFieldValue(programPlayer, "playOnAwakeObject");
+            if (
+                !string.IsNullOrWhiteSpace(
+                    GetFieldValue(playOnAwakeObject, "videoUrl") as string
+                )
+            )
+            {
+                errors.Add("The program player must not contain a baked receiver URL.");
+            }
+            var customAudioSource = programPlayer == null
+                ? null
+                : GetFieldValue(programPlayer, "customAudioSource") as AudioSource;
+            if (
+                customAudioSource == null
+                || customAudioSource.outputAudioMixerGroup == null
+                || customAudioSource.spatialBlend != 0f
+            )
+            {
+                errors.Add("The program player does not use the 2D ProgramAudio mixer path.");
+            }
             var programTexture = programPlayer == null
                 ? null
                 : GetFieldValue(programPlayer, "ProjectionTexture") as RenderTexture;
@@ -367,6 +362,37 @@ namespace CastleOfIdeas.Editor
                 {
                     errors.Add($"{surfaceName} does not use the shared program RenderTexture.");
                 }
+                var mesh = surface == null ? null : surface.GetComponent<MeshFilter>()?.sharedMesh;
+                if (!HasFullUvCoverage(mesh))
+                {
+                    errors.Add($"{surfaceName} does not have a full-range display UV map.");
+                }
+            }
+
+            var controlPanel = FindDeepChild(worldRoot.transform, "PROGRAM_MEDIA_CONTROL_UI");
+            var urlInput = controlPanel == null
+                ? null
+                : FindDeepChild(controlPanel, "UrlInput")?.GetComponent<InputField>();
+            var volumeSlider = controlPanel == null
+                ? null
+                : FindDeepChild(controlPanel, "VolumeSlider")?.GetComponent<Slider>();
+            var luaType = FindComponentType("CVRLuaClientBehaviour");
+            var mediaController = controlPanel == null
+                ? null
+                : FindDeepChild(controlPanel, "PROGRAM_MEDIA_CONTROLLER");
+            if (
+                controlPanel == null
+                || urlInput == null
+                || volumeSlider == null
+                || luaType == null
+                || mediaController?.GetComponent(luaType) == null
+            )
+            {
+                errors.Add("The runtime URL/reload/dB media control panel is incomplete.");
+            }
+            else if (volumeSlider.minValue > -60f || volumeSlider.maxValue < 12f)
+            {
+                errors.Add("The program volume control must cover -60 dB through +12 dB.");
             }
 
             var portalSurface = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_SURFACE");
@@ -389,6 +415,15 @@ namespace CastleOfIdeas.Editor
                 errors.Add(
                     "PORTAL_BRIDGE_PLAYER must remain a scaffold until its low-latency transport is validated."
                 );
+            }
+            var subSurface = FindDeepChild(worldRoot.transform, "SCREEN_SUB_SURFACE");
+            if (
+                portalSurface != null
+                && subSurface != null
+                && portalSurface.position.x <= subSurface.position.x
+            )
+            {
+                errors.Add("The portal must remain on the rear wall opposite the salon screen.");
             }
 
             var seatMarkers = worldRoot
@@ -426,9 +461,23 @@ namespace CastleOfIdeas.Editor
 
             Debug.Log(
                 $"Castle of Ideas validation passed: 1 EV spawn, 1 reference camera, " +
-                $"1 shared program video player, 2 linked lecture screens, 1 portal scaffold, " +
+                $"1 shared program video player, runtime URL/dB controls, 2 linked lecture screens, " +
+                $"1 rear-wall portal scaffold, " +
                 $"and {configuredSeatCount} seats."
             );
+        }
+
+        private static bool HasFullUvCoverage(Mesh mesh)
+        {
+            if (mesh == null || mesh.uv == null || mesh.uv.Length < 4)
+            {
+                return false;
+            }
+            var minX = mesh.uv.Min(item => item.x);
+            var maxX = mesh.uv.Max(item => item.x);
+            var minY = mesh.uv.Min(item => item.y);
+            var maxY = mesh.uv.Max(item => item.y);
+            return minX <= 0.001f && maxX >= 0.999f && minY <= 0.001f && maxY >= 0.999f;
         }
 
         private static void ConfigureReferenceCamera(
@@ -610,81 +659,372 @@ namespace CastleOfIdeas.Editor
             return component;
         }
 
-        private static void ApplyLocalStreamingConfiguration(Component player, bool required)
+        private static void ConfigureProgramAudio(Component player)
         {
-            var absolutePath = Path.Combine(
-                Directory.GetParent(Application.dataPath)?.FullName
-                    ?? throw new InvalidOperationException("Unity project root could not be resolved."),
-                LocalStreamingConfigPath
-            );
-            if (!File.Exists(absolutePath))
+            var mixerGroup = EnsureProgramAudioMixer();
+            var audioObject = GameObject.Find("PROGRAM_AUDIO_OUTPUT");
+            if (audioObject == null)
             {
-                TrySetField(player, "autoplay", false);
-                TrySetField(player, "interactiveUI", false);
-                TrySetField(player, "playOnAwakeObject", null);
-                if (required)
-                {
-                    throw new FileNotFoundException(
-                        $"Copy streaming.example.json to {LocalStreamingConfigPath} and add the viewer URL.",
-                        absolutePath
-                    );
-                }
-                Debug.Log(
-                    "No local streaming configuration was found; the program player remains safely idle."
-                );
-                return;
+                audioObject = new GameObject("PROGRAM_AUDIO_OUTPUT");
             }
-
-            var config = JsonUtility.FromJson<StreamingConfig>(File.ReadAllText(absolutePath));
-            ValidateStreamingConfig(config);
-
-            var entryField = GetField(player, "playOnAwakeObject");
-            if (entryField == null)
+            var source = audioObject.GetComponent<AudioSource>();
+            if (source == null)
             {
-                throw new InvalidOperationException(
-                    $"{player.GetType().FullName}.playOnAwakeObject was not found."
-                );
+                source = audioObject.AddComponent<AudioSource>();
             }
-            var entry = Activator.CreateInstance(entryField.FieldType);
-            TrySetField(entry, "videoUrl", config.programHlsUrl);
-            TrySetField(entry, "videoTitle", "Program Feed");
-            TrySetField(entry, "introEndInSeconds", 0);
-            TrySetField(entry, "creditsStartInSeconds", 0);
-            TrySetField(entry, "thumbnailUrl", string.Empty);
+            source.playOnAwake = false;
+            source.loop = false;
+            source.spatialBlend = 0f;
+            source.volume = 1f;
+            source.outputAudioMixerGroup = mixerGroup;
 
-            TrySetField(player, "playOnAwakeObject", entry);
-            TrySetField(player, "syncEnabled", true);
-            TrySetEnumField(player, "audioPlaybackMode", "Direct");
-            TrySetField(player, "playbackVolume", config.playbackVolume);
-            TrySetField(player, "interactiveUI", config.interactiveUi);
-            TrySetField(player, "autoplay", config.autoplay);
-            Debug.Log(
-                "Applied the local program HLS configuration without printing its capability URL."
-            );
+            TrySetEnumField(player, "audioPlaybackMode", "AudioSource");
+            TrySetField(player, "customAudioSource", source);
+            TrySetField(player, "playbackVolume", 1f);
+            TrySetField(player, "interactiveUI", false);
+            TrySetField(player, "autoplay", false);
+            TrySetField(player, "playOnAwakeObject", null);
         }
 
-        private static void ValidateStreamingConfig(StreamingConfig config)
+        private static AudioMixerGroup EnsureProgramAudioMixer()
         {
-            if (config == null || config.schemaVersion != 1)
+            EnsureAssetFolder(GeneratedPath);
+            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath);
+            if (mixer == null)
+            {
+                var controllerType = FindType("AudioMixerController");
+                var createMethod = controllerType?.GetMethod(
+                    "CreateMixerControllerAtPath",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
+                );
+                mixer = createMethod?.Invoke(null, new object[] { ProgramAudioMixerPath }) as AudioMixer;
+                AssetDatabase.SaveAssets();
+                AssetDatabase.ImportAsset(ProgramAudioMixerPath, ImportAssetOptions.ForceUpdate);
+                mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath) ?? mixer;
+            }
+            if (mixer == null)
+            {
+                throw new InvalidOperationException("Could not create the program AudioMixer asset.");
+            }
+
+            EnsureExposedMixerVolume(mixer, "ProgramGain");
+            var group = mixer.FindMatchingGroups("Master").FirstOrDefault();
+            if (group == null)
+            {
+                throw new InvalidOperationException("ProgramAudio.mixer has no Master group.");
+            }
+            return group;
+        }
+
+        private static void EnsureExposedMixerVolume(AudioMixer mixer, string parameterName)
+        {
+            var controllerType = mixer.GetType();
+            var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var exposedProperty = controllerType.GetProperty("exposedParameters", flags);
+            var masterProperty = controllerType.GetProperty("masterGroup", flags);
+            var masterGroup = masterProperty?.GetValue(mixer);
+            var guid = masterGroup
+                ?.GetType()
+                .GetMethod("GetGUIDForVolume", flags)
+                ?.Invoke(masterGroup, null);
+            var current = exposedProperty?.GetValue(mixer) as Array;
+            if (exposedProperty == null || guid == null || current == null)
             {
                 throw new InvalidOperationException(
-                    "streaming.local.json must use supported schemaVersion 1."
+                    "Unity AudioMixer internals changed; ProgramGain could not be exposed."
                 );
             }
-            if (
-                !Uri.TryCreate(config.programHlsUrl, UriKind.Absolute, out var uri)
-                || uri.Scheme != Uri.UriSchemeHttps
-                || !uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase)
-            )
+
+            var elementType = exposedProperty.PropertyType.GetElementType();
+            var guidField = elementType?.GetField("guid", flags);
+            var nameField = elementType?.GetField("name", flags);
+            if (elementType == null || guidField == null || nameField == null)
+            {
+                throw new InvalidOperationException("Unity exposed AudioMixer parameter fields were not found.");
+            }
+            foreach (var item in current)
+            {
+                if (nameField.GetValue(item) as string == parameterName)
+                {
+                    return;
+                }
+            }
+
+            var updated = Array.CreateInstance(elementType, current.Length + 1);
+            Array.Copy(current, updated, current.Length);
+            var parameter = Activator.CreateInstance(elementType);
+            guidField.SetValue(parameter, guid);
+            nameField.SetValue(parameter, parameterName);
+            updated.SetValue(parameter, current.Length);
+            exposedProperty.SetValue(mixer, updated);
+            EditorUtility.SetDirty(mixer);
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void ConfigureProgramControlPanel(
+            Transform worldRoot,
+            Component player,
+            Type interactableType,
+            Type actionType,
+            Type operationType
+        )
+        {
+            var marker = FindDeepChild(worldRoot, "PROGRAM_CONTROL_PANEL");
+            if (marker == null)
+            {
+                throw new InvalidOperationException("PROGRAM_CONTROL_PANEL marker was not found.");
+            }
+            var existing = FindDeepChild(marker, "PROGRAM_MEDIA_CONTROL_UI");
+            if (existing != null)
+            {
+                UnityEngine.Object.DestroyImmediate(existing.gameObject);
+            }
+
+            var root = new GameObject(
+                "PROGRAM_MEDIA_CONTROL_UI",
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(CanvasScaler),
+                typeof(GraphicRaycaster)
+            );
+            root.transform.SetParent(marker, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.sizeDelta = new Vector2(920f, 440f);
+            rootRect.localScale = Vector3.one * 0.0015f;
+            rootRect.localPosition = Vector3.zero;
+            rootRect.localRotation = Quaternion.Euler(90f, 0f, 0f);
+
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.sortingOrder = 20;
+            root.GetComponent<CanvasScaler>().dynamicPixelsPerUnit = 10f;
+            var wrapperType = FindComponentType("CVRCanvasWrapper");
+            if (wrapperType != null)
+            {
+                var wrapper = AddComponentIfMissing(root, wrapperType);
+                TrySetField(wrapper, "interactionDistance", 4f);
+            }
+
+            var panel = root.AddComponent<Image>();
+            panel.color = new Color(0.035f, 0.045f, 0.07f, 0.96f);
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            CreateUiText("Title", rootRect, new Vector2(0, 178), new Vector2(850, 54), "PROGRAM FEED CONTROL", 34, font, TextAnchor.MiddleLeft, Color.white);
+            CreateUiText("OwnerNote", rootRect, new Vector2(0, 138), new Vector2(850, 34), "URL操作はインスタンスオーナーのみ / 音量は各自の端末のみ", 20, font, TextAnchor.MiddleLeft, new Color(0.63f, 0.8f, 1f));
+            CreateUiText("UrlLabel", rootRect, new Vector2(-345, 84), new Vector2(150, 36), "受信URL", 23, font, TextAnchor.MiddleLeft, Color.white);
+
+            var urlInput = CreateUiInputField(rootRect, new Vector2(35, 84), new Vector2(610, 48), font);
+            var keyboardType = FindComponentType("CVRInputFieldKeyboardHandler");
+            if (keyboardType != null)
+            {
+                AddComponentIfMissing(urlInput.gameObject, keyboardType);
+            }
+
+            var applyButton = CreateUiButton("ApplyUrlButton", rootRect, new Vector2(-185, 20), new Vector2(260, 54), "URLを適用", font);
+            var reloadButton = CreateUiButton("ReloadUrlButton", rootRect, new Vector2(105, 20), new Vector2(260, 54), "再読込", font);
+            CreateUiText("VolumeLabelTitle", rootRect, new Vector2(-345, -55), new Vector2(150, 36), "音量", 23, font, TextAnchor.MiddleLeft, Color.white);
+            var volumeSlider = CreateUiSlider(rootRect, new Vector2(35, -55), new Vector2(610, 38));
+            volumeSlider.minValue = -60f;
+            volumeSlider.maxValue = 12f;
+            volumeSlider.value = 0f;
+            var volumeLabel = CreateUiText("VolumeValue", rootRect, new Vector2(365, -55), new Vector2(130, 38), "+0.0 dB", 22, font, TextAnchor.MiddleRight, Color.white);
+            var statusLabel = CreateUiText("Status", rootRect, new Vector2(0, -130), new Vector2(850, 62), "受信URLを入力して適用してください", 21, font, TextAnchor.MiddleLeft, new Color(0.78f, 0.84f, 0.9f));
+
+            var controller = new GameObject("PROGRAM_MEDIA_CONTROLLER");
+            controller.transform.SetParent(root.transform, false);
+            var luaType = FindComponentType("CVRLuaClientBehaviour");
+            var lua = luaType == null ? null : AddComponentIfMissing(controller, luaType);
+            var luaAsset = AssetDatabase.LoadMainAssetAtPath(ProgramControlsLuaPath);
+            if (lua == null || luaAsset == null)
             {
                 throw new InvalidOperationException(
-                    "programHlsUrl must be an absolute HTTPS URL ending in .m3u8."
+                    "CVR Lua component or program-media-controls.lua asset was not found."
                 );
             }
-            if (config.playbackVolume < 0f || config.playbackVolume > 1f)
+            TrySetField(lua, "localOnly", true);
+            TrySetField(lua, "asset", luaAsset);
+            ConfigureLuaBindings(
+                lua,
+                new Dictionary<string, UnityEngine.Object>
+                {
+                    ["ProgramPlayer"] = player,
+                    ["UrlInput"] = urlInput,
+                    ["VolumeSlider"] = volumeSlider,
+                    ["VolumeLabel"] = volumeLabel,
+                    ["StatusLabel"] = statusLabel,
+                    ["ProgramMixer"] = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath)
+                }
+            );
+            ConfigureLuaButton(applyButton.gameObject, controller, "ApplyUrl", interactableType, actionType, operationType);
+            ConfigureLuaButton(reloadButton.gameObject, controller, "ReloadUrl", interactableType, actionType, operationType);
+        }
+
+        private static void ConfigureLuaBindings(
+            Component lua,
+            IReadOnlyDictionary<string, UnityEngine.Object> bindings
+        )
+        {
+            var field = GetField(lua, "boundObjects");
+            var elementType = field?.FieldType.GetElementType();
+            if (field == null || elementType == null)
             {
-                throw new InvalidOperationException("playbackVolume must be between 0 and 1.");
+                throw new InvalidOperationException("CVR Lua boundObjects field was not found.");
             }
+            var values = Array.CreateInstance(elementType, bindings.Count);
+            var index = 0;
+            foreach (var binding in bindings)
+            {
+                var value = Activator.CreateInstance(elementType);
+                TrySetField(value, "name", binding.Key);
+                TrySetField(value, "boundThing", binding.Value);
+                values.SetValue(value, index++);
+            }
+            field.SetValue(lua, values);
+            EditorUtility.SetDirty(lua);
+        }
+
+        private static void ConfigureLuaButton(
+            GameObject button,
+            GameObject luaController,
+            string functionName,
+            Type interactableType,
+            Type actionType,
+            Type operationType
+        )
+        {
+            var interactable = AddComponentIfMissing(button, interactableType);
+            TrySetField(interactable, "version", 1);
+            var actions = CreateListForField(interactable, "actions");
+            actions.Clear();
+            var action = Activator.CreateInstance(actionType);
+            TrySetEnumField(action, "actionType", "OnUnityUIPointerUp");
+            TrySetEnumField(action, "execType", "GlobalInstanceOwnerOnly");
+            var operations = CreateListForField(action, "operations");
+            var operation = Activator.CreateInstance(operationType);
+            TrySetEnumField(operation, "type", "LuaFunctionCall");
+            TrySetField(operation, "gameObjectVal", luaController);
+            TrySetField(operation, "stringVal", functionName);
+            operations.Add(operation);
+            actions.Add(action);
+            EditorUtility.SetDirty(interactable);
+        }
+
+        private static Text CreateUiText(
+            string name,
+            RectTransform parent,
+            Vector2 position,
+            Vector2 size,
+            string value,
+            int fontSize,
+            Font font,
+            TextAnchor alignment,
+            Color color
+        )
+        {
+            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            target.transform.SetParent(parent, false);
+            var rect = (RectTransform)target.transform;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            var text = target.GetComponent<Text>();
+            text.text = value;
+            text.font = font;
+            text.fontSize = fontSize;
+            text.alignment = alignment;
+            text.color = color;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            return text;
+        }
+
+        private static InputField CreateUiInputField(
+            RectTransform parent,
+            Vector2 position,
+            Vector2 size,
+            Font font
+        )
+        {
+            var target = new GameObject("UrlInput", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(InputField));
+            target.transform.SetParent(parent, false);
+            var rect = (RectTransform)target.transform;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            target.GetComponent<Image>().color = new Color(0.92f, 0.95f, 1f, 1f);
+            var text = CreateUiText("Text", rect, Vector2.zero, new Vector2(size.x - 30, size.y - 8), string.Empty, 19, font, TextAnchor.MiddleLeft, new Color(0.04f, 0.06f, 0.1f));
+            var placeholder = CreateUiText("Placeholder", rect, Vector2.zero, new Vector2(size.x - 30, size.y - 8), "https://…/index.m3u8", 19, font, TextAnchor.MiddleLeft, new Color(0.35f, 0.4f, 0.48f));
+            var input = target.GetComponent<InputField>();
+            input.textComponent = text;
+            input.placeholder = placeholder;
+            input.contentType = InputField.ContentType.Password;
+            input.lineType = InputField.LineType.SingleLine;
+            input.asteriskChar = '•';
+            input.characterLimit = 2048;
+            return input;
+        }
+
+        private static Button CreateUiButton(
+            string name,
+            RectTransform parent,
+            Vector2 position,
+            Vector2 size,
+            string label,
+            Font font
+        )
+        {
+            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            target.transform.SetParent(parent, false);
+            var rect = (RectTransform)target.transform;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            var image = target.GetComponent<Image>();
+            image.color = new Color(0.16f, 0.42f, 0.64f, 1f);
+            var button = target.GetComponent<Button>();
+            button.targetGraphic = image;
+            CreateUiText("Label", rect, Vector2.zero, size, label, 23, font, TextAnchor.MiddleCenter, Color.white);
+            return button;
+        }
+
+        private static Slider CreateUiSlider(
+            RectTransform parent,
+            Vector2 position,
+            Vector2 size
+        )
+        {
+            var target = new GameObject("VolumeSlider", typeof(RectTransform), typeof(Slider));
+            target.transform.SetParent(parent, false);
+            var rect = (RectTransform)target.transform;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+
+            var background = new GameObject("Background", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            background.transform.SetParent(target.transform, false);
+            var backgroundRect = (RectTransform)background.transform;
+            backgroundRect.anchorMin = new Vector2(0f, 0.35f);
+            backgroundRect.anchorMax = new Vector2(1f, 0.65f);
+            backgroundRect.offsetMin = Vector2.zero;
+            backgroundRect.offsetMax = Vector2.zero;
+            background.GetComponent<Image>().color = new Color(0.17f, 0.2f, 0.27f, 1f);
+
+            var fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            fill.transform.SetParent(target.transform, false);
+            var fillRect = (RectTransform)fill.transform;
+            fillRect.anchorMin = new Vector2(0f, 0.35f);
+            fillRect.anchorMax = new Vector2(1f, 0.65f);
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            fill.GetComponent<Image>().color = new Color(0.2f, 0.64f, 0.88f, 1f);
+
+            var handle = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            handle.transform.SetParent(target.transform, false);
+            var handleRect = (RectTransform)handle.transform;
+            handleRect.sizeDelta = new Vector2(28f, 42f);
+            handle.GetComponent<Image>().color = Color.white;
+
+            var slider = target.GetComponent<Slider>();
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.fillRect = fillRect;
+            slider.handleRect = handleRect;
+            slider.targetGraphic = handle.GetComponent<Image>();
+            return slider;
         }
 
         private static WorldIdentity CaptureWorldIdentity()

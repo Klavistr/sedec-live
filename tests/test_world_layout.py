@@ -40,8 +40,11 @@ class WorldLayoutTest(unittest.TestCase):
         program = self.layout["mediaTopology"]["programFeed"]
         self.assertEqual(program["playerCount"], 1)
         self.assertEqual(program["outputs"], ["main", "sub"])
-        self.assertEqual(program["audioMode"], "direct-2d")
+        self.assertEqual(program["audioMode"], "mixer-2d")
         self.assertEqual(program["transport"], "https-hls")
+        self.assertEqual(program["runtimeControls"]["receiverUrl"], "instance-owner")
+        self.assertEqual(program["runtimeControls"]["volumeDb"], [-60.0, 12.0])
+        self.assertEqual(program["runtimeControls"]["volumeScope"], "local-user")
 
     def test_portal_is_scaffolded_without_committing_to_a_transport(self):
         portal = self.layout["mediaTopology"]["portalBridge"]
@@ -49,6 +52,15 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertEqual(portal["outputs"], ["portal"])
         self.assertEqual(portal["status"], "scaffold-only")
         self.assertEqual(portal["transport"], "to-be-validated")
+
+    def test_portal_is_on_the_wall_opposite_the_salon_screen(self):
+        dimensions = self.layout["dimensions"]["sub"]
+        screen = self.layout["screens"]["sub"]
+        portal = self.layout["screens"]["portal"]
+        self.assertEqual(screen["faces"], "west")
+        self.assertEqual(portal["faces"], "east")
+        self.assertGreater(screen["center"][0], portal["center"][0])
+        self.assertAlmostEqual(portal["center"][0], dimensions["minX"] + 0.24)
 
     def test_initial_seating_capacity_is_nontrivial(self):
         furniture = self.layout["furniture"]
