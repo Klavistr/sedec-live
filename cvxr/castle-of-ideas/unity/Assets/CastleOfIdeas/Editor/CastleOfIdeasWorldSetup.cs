@@ -376,6 +376,9 @@ namespace CastleOfIdeas.Editor
             var volumeSlider = controlPanel == null
                 ? null
                 : FindDeepChild(controlPanel, "VolumeSlider")?.GetComponent<Slider>();
+            var diagnosticsButton = controlPanel == null
+                ? null
+                : FindDeepChild(controlPanel, "DiagnosticsButton")?.GetComponent<Button>();
             var luaType = FindComponentType("CVRLuaClientBehaviour");
             var mediaController = controlPanel == null
                 ? null
@@ -384,6 +387,7 @@ namespace CastleOfIdeas.Editor
                 controlPanel == null
                 || urlInput == null
                 || volumeSlider == null
+                || diagnosticsButton == null
                 || luaType == null
                 || mediaController?.GetComponent(luaType) == null
             )
@@ -819,8 +823,9 @@ namespace CastleOfIdeas.Editor
                 AddComponentIfMissing(urlInput.gameObject, keyboardType);
             }
 
-            var applyButton = CreateUiButton("ApplyUrlButton", rootRect, new Vector2(-185, 20), new Vector2(260, 54), "URLを適用", font);
-            var reloadButton = CreateUiButton("ReloadUrlButton", rootRect, new Vector2(105, 20), new Vector2(260, 54), "再読込", font);
+            var applyButton = CreateUiButton("ApplyUrlButton", rootRect, new Vector2(-250, 20), new Vector2(220, 54), "URLを適用", font);
+            var reloadButton = CreateUiButton("ReloadUrlButton", rootRect, new Vector2(0, 20), new Vector2(220, 54), "再読込", font);
+            var diagnosticsButton = CreateUiButton("DiagnosticsButton", rootRect, new Vector2(250, 20), new Vector2(220, 54), "診断ログ出力", font);
             CreateUiText("VolumeLabelTitle", rootRect, new Vector2(-345, -55), new Vector2(150, 36), "音量", 23, font, TextAnchor.MiddleLeft, Color.white);
             var volumeSlider = CreateUiSlider(rootRect, new Vector2(35, -55), new Vector2(610, 38));
             volumeSlider.minValue = -60f;
@@ -856,6 +861,7 @@ namespace CastleOfIdeas.Editor
             );
             ConfigureLuaButton(applyButton.gameObject, controller, "ApplyUrl", interactableType, actionType, operationType);
             ConfigureLuaButton(reloadButton.gameObject, controller, "ReloadUrl", interactableType, actionType, operationType);
+            ConfigureLuaButton(diagnosticsButton.gameObject, controller, "DumpDiagnostics", interactableType, actionType, operationType);
         }
 
         private static void ConfigureLuaBindings(
@@ -904,7 +910,9 @@ namespace CastleOfIdeas.Editor
             TrySetField(operation, "gameObjectVal", luaController);
             TrySetField(operation, "stringVal", functionName);
             operations.Add(operation);
+            TrySetField(action, "operations", operations);
             actions.Add(action);
+            TrySetField(interactable, "actions", actions);
             EditorUtility.SetDirty(interactable);
         }
 

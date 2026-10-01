@@ -88,7 +88,7 @@ CCK は公式 Unity Package をローカル導入し、配布物そのものは�
 
 メインとサブにそれぞれ 16:9 スクリーンを用意します。表示面は0〜1のUVを全面に割り当てた専用Quadで、講演本線は CCK の [`CVR Video Player`](https://docs.chilloutvr.net/cck/components/cvr-video-player/) 1台だけで再生し、同じ `ProgramFeed.renderTexture` を両方のスクリーン材質で共有します。これにより、映像をクロップせず、各参加者のPCで同じHLSを二重に取得・デコードしません。
 
-ワールドはURL未設定の安全な待機状態を既定とします。エレベーター付近の `PROGRAM FEED CONTROL` でHTTPSの `.m3u8` 受信URLを入力し、`URLを適用` を押すと同期プレイヤーへ反映します。HLSの準備前に失敗した場合は `再読込` で復帰できます。URL入力欄はマスク表示で、適用・再読込操作はインスタンスオーナーだけが実行します。
+ワールドはURL未設定の安全な待機状態を既定とします。エレベーター付近の `PROGRAM FEED CONTROL` でHTTPSの `.m3u8` 受信URLを入力し、`URLを適用` を押すと同期プレイヤーへ反映します。HLSの準備前に失敗した場合は `再読込` で復帰できます。URL入力欄はマスク表示で、適用・再読込操作はインスタンスオーナーだけが実行します。Windows Previewの `launch-castle-of-ideas-debug.cmd` から起動すると、ワールドとは別のPowerShell窓でLua・Video Player・HLS関連の `Player.log` を追跡できます。`診断ログ出力` ボタンはURL本体を出さず、バインディング状態、入力文字数、音量値をこの窓へ出力します。
 
 講演音声は2D Audio Sourceから専用AudioMixerへ送り、各ユーザーが −60〜+12 dBの範囲でローカル調整できます。0 dBが等倍、正値はブーストです。音量は同期しないため、他の参加者の聴取音量を変えません。ただし、映像は各参加者のPCが直接取得するため、同期された視聴URLを参加者から完全に秘匿することはできません。
 

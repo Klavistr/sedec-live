@@ -12,6 +12,8 @@ CCK とその依存物はライセンスおよび更新手順の都合で同梱�
 
 講演HLSの受信URLはワールドへ埋め込みません。ワールド内の `PROGRAM FEED CONTROL` へHTTPSの `.m3u8` URLを入力し、`URLを適用` を押します。URL操作はインスタンスオーナーだけが同期プレイヤーへ反映でき、`再読込` でHLS開始待ちから復帰できます。入力欄はマスク表示です。
 
+Windows Previewの問題を調べる場合は `launch-castle-of-ideas-debug.cmd` から起動します。別のPowerShell窓がChilloutVRの `Player.log` を追跡し、Lua、Video Player、HLSと `[CastleOfIdeas]` の行を表示します。操作パネルの `診断ログ出力` はURLを表示せず、現在のバインディングと操作状態だけをログへ追加します。
+
 メイン／サブの講演スクリーンは `ProgramFeed.renderTexture` を共有します。音声は2D Audio Sourceから `ProgramAudio.mixer` へ送り、各ユーザーが −60〜+12 dBの範囲でローカル調整できます。`PORTAL_BRIDGE_PLAYER` はサブ会場後方壁にある低遅延方式の検証用マーカーで、初期HLS構成ではVideo Playerを付けません。
 
 初回セットアップ後は、生成された `.meta`、シーン、Material、RenderTexture をコミット対象にします。`Library/`、`Temp/`、`Logs/`、ユーザー固有設定はコミットしません。

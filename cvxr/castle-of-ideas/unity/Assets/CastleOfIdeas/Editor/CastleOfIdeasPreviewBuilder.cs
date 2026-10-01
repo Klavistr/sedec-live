@@ -170,6 +170,14 @@ namespace CastleOfIdeas.Editor
                 Path.Combine(packagePath, "launch-castle-of-ideas.cmd"),
                 CreateWindowsLauncher(localEditorIdentifier)
             );
+            File.WriteAllText(
+                Path.Combine(packagePath, "launch-castle-of-ideas-debug.cmd"),
+                CreateDebugLauncher()
+            );
+            File.WriteAllText(
+                Path.Combine(packagePath, "watch-castle-of-ideas-log.ps1"),
+                CreateLogWatcher()
+            );
             File.WriteAllText(Path.Combine(packagePath, "README.txt"), CreateReadme());
             File.WriteAllText(
                 Path.Combine(packagePath, "build-info.json"),
@@ -216,6 +224,49 @@ endlocal
 ";
         }
 
+        private static string CreateDebugLauncher()
+        {
+            return @"@echo off
+start ""Castle of Ideas diagnostics"" powershell.exe -NoProfile -NoExit -ExecutionPolicy Bypass -File ""%~dp0watch-castle-of-ideas-log.ps1""
+call ""%~dp0launch-castle-of-ideas.cmd""
+";
+        }
+
+        private static string CreateLogWatcher()
+        {
+            return @"$ErrorActionPreference = ""Continue""
+$candidatePaths = @(
+    (Join-Path $env:USERPROFILE ""AppData\LocalLow\ChilloutVR\ChilloutVR\Player.log""),
+    (Join-Path $env:USERPROFILE ""AppData\LocalLow\Alpha Blend Interactive\ChilloutVR\Player.log"")
+)
+
+Write-Host ""Castle of Ideas diagnostics"" -ForegroundColor Cyan
+Write-Host ""Waiting for ChilloutVR Player.log..."" -ForegroundColor DarkGray
+
+$logPath = $null
+while (-not $logPath) {
+    $logPath = $candidatePaths |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        ForEach-Object { Get-Item -LiteralPath $_ } |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1 -ExpandProperty FullName
+    if (-not $logPath) { Start-Sleep -Seconds 1 }
+}
+
+Write-Host (""Watching: "" + $logPath) -ForegroundColor Green
+Write-Host ""The receiver URL is never printed by Castle of Ideas diagnostics."" -ForegroundColor DarkGray
+Write-Host ""Press Ctrl+C to stop watching.`n"" -ForegroundColor DarkGray
+
+$pattern = ""CastleOfIdeas|CVRLua|Lua|MoonSharp|VideoPlayer|AVPro|HLS|m3u8|Exception|Error""
+Get-Content -LiteralPath $logPath -Tail 250 -Wait | ForEach-Object {
+    if ($_ -match $pattern) {
+        $redactedLine = $_ -replace ""https://\S+"", ""https://[redacted]""
+        Write-Host $redactedLine
+    }
+}
+";
+        }
+
         private static string CreateReadme()
         {
             return @"Castle of Ideas - Windows Preview
@@ -225,6 +276,9 @@ Requirements:
 - ChilloutVR installed and registered for chilloutvr:// links
 
 Run launch-castle-of-ideas.cmd to open this build in ChilloutVR.
+Run launch-castle-of-ideas-debug.cmd instead to also open a separate diagnostics
+window. The diagnostics window follows ChilloutVR's Player.log and filters Lua,
+video-player, HLS, and Castle of Ideas messages. It never prints the receiver URL.
 
 This is an offline Local Test preview. Other players cannot join it, and networking
 features are unavailable. The published multiplayer version is distributed through
@@ -234,6 +288,8 @@ No private HLS viewer URL is included in this preview. Enter an HTTPS .m3u8 rece
 URL on the PROGRAM FEED CONTROL panel after entering the world. The main and sub
 lecture screens share one program player. Use Reload if the HLS feed was not ready
 when first applied. Per-user volume trim is available from -60 dB through +12 dB.
+Use the Diagnostics button to write the current binding and control state to the
+separate diagnostics window without revealing the receiver URL.
 
 The purple portal is on the rear wall opposite the white salon screen. It remains a
 visual and integration scaffold; its future low-latency bridge is not connected yet.
@@ -252,6 +308,7 @@ visual and integration scaffold; its future low-latency bridge is not connected 
   ""linkedLectureScreens"": 2,
   ""runtimeReceiverUrlInput"": true,
   ""volumeTrimDb"": [-60, 12],
+  ""externalDiagnostics"": true,
   ""portalStatus"": ""scaffold-only"",
   ""builtAtUtc"": ""{DateTime.UtcNow:O}""
 }}
