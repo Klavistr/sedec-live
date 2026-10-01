@@ -1,5 +1,29 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!245 &-7442596115681849179
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Program -12 dB
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 5d3c7ebe738964944ae1ee15716a03e2
+  m_FloatValues:
+    99e0c374d83b44fa085d29081b042a63: -12
+  m_TransitionOverrides: {}
+--- !u!245 &-1858926308462176297
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Program -6 dB
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 7cb5326603b0b41918d47afd7e306d94
+  m_FloatValues:
+    99e0c374d83b44fa085d29081b042a63: -6
+  m_TransitionOverrides: {}
 --- !u!241 &24100000
 AudioMixerController:
   m_ObjectHideFlags: 0
@@ -11,6 +35,11 @@ AudioMixerController:
   m_MasterGroup: {fileID: 24300002}
   m_Snapshots:
   - {fileID: 24500006}
+  - {fileID: -7442596115681849179}
+  - {fileID: -1858926308462176297}
+  - {fileID: 4477018458922960857}
+  - {fileID: 4826794036044215196}
+  - {fileID: 3053622132537762749}
   m_StartSnapshot: {fileID: 24500006}
   m_SuspendThreshold: -80
   m_EnableSuspend: 1
@@ -64,4 +93,40 @@ AudioMixerSnapshotController:
   m_AudioMixer: {fileID: 24100000}
   m_SnapshotID: 7867c45c59d1349348199f3f74187830
   m_FloatValues: {}
+  m_TransitionOverrides: {}
+--- !u!245 &3053622132537762749
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Program +12 dB
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 61ffdd6080a6a4cfea265e4af1bbaa7d
+  m_FloatValues:
+    99e0c374d83b44fa085d29081b042a63: 12
+  m_TransitionOverrides: {}
+--- !u!245 &4477018458922960857
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Program 0 dB
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 0ad7c95f8624647f88c17fc862ee26eb
+  m_FloatValues:
+    99e0c374d83b44fa085d29081b042a63: 0
+  m_TransitionOverrides: {}
+--- !u!245 &4826794036044215196
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Program +6 dB
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 6cb712edbc3ae419db1188edea346555
+  m_FloatValues:
+    99e0c374d83b44fa085d29081b042a63: 6
   m_TransitionOverrides: {}

@@ -99,9 +99,9 @@
       "audioMode": "mixer-2d",
       "transport": "https-hls",
       "runtimeControls": {
-        "receiverUrl": "instance-owner",
+        "receiverUrl": "build-time-local-config",
         "reload": true,
-        "volumeDb": [-60.0, 12.0],
+        "volumePresetsDb": [-12.0, -6.0, 0.0, 6.0, 12.0],
         "volumeScope": "local-user"
       }
     },

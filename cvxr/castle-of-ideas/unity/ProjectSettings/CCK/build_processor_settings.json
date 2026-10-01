@@ -1,5 +1,10 @@
 {
   "ProcessorSettings": {
+    "CastleOfIdeas.Editor.CastleOfIdeasStreamingBuildProcessor": {
+      "IsEnabled": true,
+      "CustomOrder": -1000,
+      "OverrideCallbackOrder": false
+    },
     "CVR.CCKEditor.ContentBuilder.Processors.CaptureWorldPanoramic": {
       "IsEnabled": true,
       "CustomOrder": 10000,
