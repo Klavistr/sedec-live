@@ -257,9 +257,9 @@ Write-Host (""Watching: "" + $logPath) -ForegroundColor Green
 Write-Host ""The receiver URL is never printed by Castle of Ideas diagnostics."" -ForegroundColor DarkGray
 Write-Host ""Press Ctrl+C to stop watching.`n"" -ForegroundColor DarkGray
 
-$pattern = ""CastleOfIdeas|CVRLua|Lua|MoonSharp|VideoPlayer|AVPro|HLS|m3u8|Exception|Error""
+$pattern = ""CastleOfIdeas|CVRLua|Lua|MoonSharp|program-media-controls|PROGRAM_MEDIA_CONTROLLER|VideoPlayer|AVPro|HLS|m3u8|Exception|Missing|referenced script|Error""
 Get-Content -LiteralPath $logPath -Tail 250 -Wait | ForEach-Object {
-    if ($_ -match $pattern) {
+    if ($_ -match $pattern -and $_ -notmatch ""\[Cohtml\]"") {
         $redactedLine = $_ -replace ""https://\S+"", ""https://[redacted]""
         Write-Host $redactedLine
     }

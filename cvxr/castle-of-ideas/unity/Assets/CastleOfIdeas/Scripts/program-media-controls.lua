@@ -1,12 +1,25 @@
 -- Runtime controls for the shared Castle of Ideas lecture feed.
 -- The URL is entered at runtime and is never stored in the project or bundle.
 
--- Loading these modules registers the component bindings used below. Without
--- them, accessing Unity UI and CCK component members can stop the script during
--- Start(), which makes every control appear inert at once.
-UnityEngine = require("UnityEngine")
-UnityUI = require("UnityEngine.UI")
-CCK = require("CVR.CCK")
+local SCRIPT_VERSION = "0.3.2-debug1"
+print("[CastleOfIdeas] bootstrap " .. SCRIPT_VERSION)
+
+local function loadModule(name)
+    local ok, moduleOrError = pcall(require, name)
+    if ok then
+        print("[CastleOfIdeas] module loaded: " .. name)
+        return moduleOrError
+    end
+    print("[CastleOfIdeas] module failed: " .. name .. ": " .. tostring(moduleOrError))
+    return nil
+end
+
+-- Loading these modules registers the component bindings used below. Keep the
+-- calls protected so an unavailable binding is visible in Player.log instead
+-- of stopping the script before Start() can report its state.
+UnityEngine = loadModule("UnityEngine")
+UnityUI = loadModule("UnityEngine.UI")
+CCK = loadModule("CVR.CCK")
 
 local player
 local urlInput
@@ -18,7 +31,6 @@ local lastUrl = ""
 local lastDb = nil
 local lastLoggedDb = nil
 local mixerFailureReported = false
-local SCRIPT_VERSION = "0.3.1-debug1"
 
 local function debugLog(message)
     print("[CastleOfIdeas] " .. tostring(message))
