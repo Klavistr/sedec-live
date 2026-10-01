@@ -6,6 +6,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORLD_PATH = ROOT / "cvxr" / "castle-of-ideas"
 LAYOUT_PATH = WORLD_PATH / "design" / "layout.json"
+PROGRAM_CONTROLS_PATH = (
+    WORLD_PATH
+    / "unity"
+    / "Assets"
+    / "CastleOfIdeas"
+    / "Scripts"
+    / "program-media-controls.lua"
+)
+PREVIEW_BUILDER_PATH = (
+    WORLD_PATH
+    / "unity"
+    / "Assets"
+    / "CastleOfIdeas"
+    / "Editor"
+    / "CastleOfIdeasPreviewBuilder.cs"
+)
+WORLD_SCENE_PATH = (
+    WORLD_PATH
+    / "unity"
+    / "Assets"
+    / "CastleOfIdeas"
+    / "Scenes"
+    / "Castle-of-Ideas.unity"
+)
 GENERATED_OR_EXTERNAL_PARTS = {
     "CVR.CCK",
     "Library",
@@ -61,6 +85,39 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertEqual(portal["faces"], "east")
         self.assertGreater(screen["center"][0], portal["center"][0])
         self.assertAlmostEqual(portal["center"][0], dimensions["minX"] + 0.24)
+
+    def test_program_controls_load_runtime_bindings_and_emit_redacted_diagnostics(self):
+        script = PROGRAM_CONTROLS_PATH.read_text(encoding="utf-8")
+        self.assertIn('require("UnityEngine.UI")', script)
+        self.assertIn('require("CVR.CCK")', script)
+        self.assertIn("[CastleOfIdeas]", script)
+        self.assertIn("URL redacted", script)
+        self.assertIn("function DumpDiagnostics()", script)
+
+    def test_windows_preview_includes_external_diagnostics_launcher(self):
+        builder = PREVIEW_BUILDER_PATH.read_text(encoding="utf-8")
+        self.assertIn("launch-castle-of-ideas-debug.cmd", builder)
+        self.assertIn("watch-castle-of-ideas-log.ps1", builder)
+        self.assertIn("Player.log", builder)
+
+    def test_program_control_button_actions_are_assigned_back_to_cck(self):
+        setup_path = (
+            WORLD_PATH
+            / "unity"
+            / "Assets"
+            / "CastleOfIdeas"
+            / "Editor"
+            / "CastleOfIdeasWorldSetup.cs"
+        )
+        setup = setup_path.read_text(encoding="utf-8")
+        method = setup.split("private static void ConfigureLuaButton", 1)[1]
+        method = method.split("private static Text CreateUiText", 1)[0]
+        self.assertIn('TrySetField(action, "operations", operations);', method)
+        self.assertIn('TrySetField(interactable, "actions", actions);', method)
+
+        scene = WORLD_SCENE_PATH.read_text(encoding="utf-8")
+        for function_name in ("ApplyUrl", "ReloadUrl", "DumpDiagnostics"):
+            self.assertIn(f"stringVal: {function_name}", scene)
 
     def test_initial_seating_capacity_is_nontrivial(self):
         furniture = self.layout["furniture"]
