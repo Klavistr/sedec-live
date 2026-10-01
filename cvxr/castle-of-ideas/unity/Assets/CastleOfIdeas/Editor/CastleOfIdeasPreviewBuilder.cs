@@ -229,6 +229,10 @@ Run launch-castle-of-ideas.cmd to open this build in ChilloutVR.
 This is an offline Local Test preview. Other players cannot join it, and networking
 features are unavailable. The published multiplayer version is distributed through
 ChilloutVR itself rather than this ZIP package.
+
+No private HLS viewer URL is included in this public preview. The main and sub lecture
+screens share one idle program player. The purple portal in the white salon is a visual
+and integration scaffold; its future low-latency bridge is not connected yet.
 ";
         }
 
@@ -240,6 +244,9 @@ ChilloutVR itself rather than this ZIP package.
   ""localEditorIdentifier"": ""{localEditorIdentifier}"",
   ""unityVersion"": ""{Application.unityVersion}"",
   ""cckVersion"": ""{cckVersion}"",
+  ""programVideoPlayers"": 1,
+  ""linkedLectureScreens"": 2,
+  ""portalStatus"": ""scaffold-only"",
   ""builtAtUtc"": ""{DateTime.UtcNow:O}""
 }}
 ";
