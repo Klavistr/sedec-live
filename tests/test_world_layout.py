@@ -88,8 +88,11 @@ class WorldLayoutTest(unittest.TestCase):
 
     def test_program_controls_load_runtime_bindings_and_emit_redacted_diagnostics(self):
         script = PROGRAM_CONTROLS_PATH.read_text(encoding="utf-8")
-        self.assertIn('require("UnityEngine.UI")', script)
-        self.assertIn('require("CVR.CCK")', script)
+        self.assertIn('loadModule("UnityEngine.UI")', script)
+        self.assertIn('loadModule("CVR.CCK")', script)
+        self.assertIn("pcall(require, name)", script)
+        self.assertLess(script.index("[CastleOfIdeas] bootstrap"), script.index("pcall(require, name)"))
+        self.assertIn("module failed:", script)
         self.assertIn("[CastleOfIdeas]", script)
         self.assertIn("URL redacted", script)
         self.assertIn("function DumpDiagnostics()", script)
@@ -99,6 +102,7 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertIn("launch-castle-of-ideas-debug.cmd", builder)
         self.assertIn("watch-castle-of-ideas-log.ps1", builder)
         self.assertIn("Player.log", builder)
+        self.assertIn('$_ -notmatch ""\\[Cohtml\\]""', builder)
 
     def test_program_control_button_actions_are_assigned_back_to_cck(self):
         setup_path = (
