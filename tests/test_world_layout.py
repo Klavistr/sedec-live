@@ -36,6 +36,20 @@ class WorldLayoutTest(unittest.TestCase):
         for screen in self.layout["screens"].values():
             self.assertAlmostEqual(screen["width"] / screen["height"], 16 / 9, places=3)
 
+    def test_program_feed_is_shared_by_both_lecture_screens(self):
+        program = self.layout["mediaTopology"]["programFeed"]
+        self.assertEqual(program["playerCount"], 1)
+        self.assertEqual(program["outputs"], ["main", "sub"])
+        self.assertEqual(program["audioMode"], "direct-2d")
+        self.assertEqual(program["transport"], "https-hls")
+
+    def test_portal_is_scaffolded_without_committing_to_a_transport(self):
+        portal = self.layout["mediaTopology"]["portalBridge"]
+        self.assertEqual(portal["playerCount"], 0)
+        self.assertEqual(portal["outputs"], ["portal"])
+        self.assertEqual(portal["status"], "scaffold-only")
+        self.assertEqual(portal["transport"], "to-be-validated")
+
     def test_initial_seating_capacity_is_nontrivial(self):
         furniture = self.layout["furniture"]
         main_seats = (

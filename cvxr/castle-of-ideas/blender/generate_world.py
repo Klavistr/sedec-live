@@ -123,6 +123,13 @@ def create_materials() -> None:
         emission_strength=1.8,
     )
     material(
+        "MAT_PORTAL_PLACEHOLDER",
+        (0.04, 0.025, 0.11, 1),
+        roughness=0.12,
+        emission=(0.24, 0.14, 0.72, 1),
+        emission_strength=2.5,
+    )
+    material(
         "MAT_LIGHT_WARM",
         (0.85, 0.51, 0.18, 1),
         roughness=0.3,
@@ -568,10 +575,82 @@ def create_screen(name: str, screen: dict) -> None:
             box(f"SCREEN_{name}_FRAME_{suffix}", (x - 0.02, sy, sz), size, frame_mat, target_collection="Screens", bevel=0.02)
     surface = bpy.data.objects[f"SCREEN_{name}_SURFACE"]
     surface["castle_of_ideas_role"] = "video-surface"
-    surface["stream_slot"] = name.lower()
-    player = empty(f"SCREEN_{name}_PLAYER", (x, y, z), target_collection="Screens")
-    player["castle_of_ideas_role"] = "cvr-video-player"
-    player["stream_slot"] = name.lower()
+    surface["stream_slot"] = "program"
+
+
+def create_media_markers(config: dict) -> None:
+    main = config["screens"]["main"]
+    x, y, z = main["center"]
+    player = empty("PROGRAM_FEED_PLAYER", (x, y, z), target_collection="Gimmicks")
+    player["castle_of_ideas_role"] = "shared-cvr-video-player"
+    player["stream_slot"] = "program"
+
+
+def create_portal(portal: dict) -> None:
+    width = portal["width"]
+    height = portal["height"]
+    x, y, z = portal["center"]
+    if portal["faces"] != "south":
+        raise ValueError("The initial portal scaffold must face south.")
+
+    box(
+        "PORTAL_BRIDGE_SURFACE",
+        (x, y, z),
+        (width, 0.08, height),
+        "MAT_PORTAL_PLACEHOLDER",
+        target_collection="Screens",
+        bevel=0.03,
+    )
+    for suffix, sx, sz, size, material_name in (
+        ("LEFT_OUTER", x - width / 2 - 0.16, z, (0.22, 0.18, height + 0.62), "MAT_SUB_TRIM_WHITE"),
+        ("RIGHT_OUTER", x + width / 2 + 0.16, z, (0.22, 0.18, height + 0.62), "MAT_SUB_TRIM_WHITE"),
+        ("TOP_OUTER", x, z + height / 2 + 0.16, (width + 0.54, 0.18, 0.22), "MAT_SUB_TRIM_WHITE"),
+        ("BOTTOM_OUTER", x, z - height / 2 - 0.16, (width + 0.54, 0.18, 0.22), "MAT_SUB_TRIM_WHITE"),
+        ("LEFT_INNER", x - width / 2 - 0.05, z, (0.08, 0.20, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
+        ("RIGHT_INNER", x + width / 2 + 0.05, z, (0.08, 0.20, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
+        ("TOP_INNER", x, z + height / 2 + 0.05, (width + 0.18, 0.20, 0.08), "MAT_SUB_ACCENT_BLUE"),
+        ("BOTTOM_INNER", x, z - height / 2 - 0.05, (width + 0.18, 0.20, 0.08), "MAT_SUB_ACCENT_BLUE"),
+    ):
+        box(
+            f"PORTAL_BRIDGE_FRAME_{suffix}",
+            (sx, y - 0.02, sz),
+            size,
+            material_name,
+            target_collection="Screens",
+            bevel=0.04,
+        )
+
+    for side, finial_x in (
+        ("LEFT", x - width / 2 - 0.16),
+        ("RIGHT", x + width / 2 + 0.16),
+    ):
+        cylinder(
+            f"PORTAL_BRIDGE_FINIAL_{side}",
+            (finial_x, y - 0.03, z + height / 2 + 0.38),
+            0.11,
+            0.22,
+            "MAT_SUB_ACCENT_BLUE",
+            target_collection="Screens",
+        )
+
+    surface = bpy.data.objects["PORTAL_BRIDGE_SURFACE"]
+    surface["castle_of_ideas_role"] = "portal-video-surface"
+    surface["stream_slot"] = "bridge"
+
+    for marker_name, marker_location, role in (
+        ("PORTAL_BRIDGE_PLAYER", (x, y - 0.15, z), "future-cvr-video-player"),
+        ("PORTAL_BRIDGE_VIEW_ANCHOR", (x, y - 1.8, 1.65), "portal-viewpoint"),
+        ("PORTAL_BRIDGE_VOICE_ANCHOR", (x, y - 0.5, 1.65), "portal-voice-anchor"),
+        ("PORTAL_BRIDGE_CAMERA_TARGET", (x, y - 0.12, 1.65), "portal-camera-target"),
+    ):
+        marker = empty(
+            marker_name,
+            marker_location,
+            target_collection="Gimmicks",
+            display="ARROWS",
+        )
+        marker["castle_of_ideas_role"] = role
+        marker["stream_slot"] = "bridge"
 
 
 def add_light(name: str, location, color, energy: float, light_type: str = "POINT", size: float = 2.0):
@@ -748,6 +827,8 @@ def main() -> None:
     create_furniture(config)
     create_screen("MAIN", config["screens"]["main"])
     create_screen("SUB", config["screens"]["sub"])
+    create_media_markers(config)
+    create_portal(config["screens"]["portal"])
     create_lighting()
     create_markers(config)
     add_preview_camera()

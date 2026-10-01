@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
@@ -16,12 +17,34 @@ namespace CastleOfIdeas.Editor
         private const string ModelPath = "Assets/CastleOfIdeas/Models/castle-of-ideas.fbx";
         private const string GeneratedPath = "Assets/CastleOfIdeas/Generated";
         private const string ScenePath = "Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity";
+        private const string LocalStreamingConfigPath =
+            "Assets/CastleOfIdeas/Config/streaming.local.json";
+        private const string ProgramRenderTextureName = "ProgramFeed.renderTexture";
+        private const string StableLocalEditorIdentifier =
+            "62b20d81-a4fa-4a0d-bad0-34fed1cb476d";
+
+        [Serializable]
+        private sealed class StreamingConfig
+        {
+            public int schemaVersion;
+            public string programHlsUrl;
+            public bool autoplay;
+            public bool interactiveUi;
+            public float playbackVolume = 1f;
+        }
+
+        private sealed class WorldIdentity
+        {
+            public string objectId;
+            public string randomNum;
+        }
 
         [MenuItem("Castle of Ideas/Build Complete CCK World")]
         public static void BuildCompleteCckWorld()
         {
+            var identity = CaptureWorldIdentity();
             BuildWorldScene();
-            AttachAvailableCckComponents();
+            AttachAvailableCckComponents(identity);
             AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
             ValidateWorldScene();
@@ -69,6 +92,35 @@ namespace CastleOfIdeas.Editor
             ValidateWorldScene();
         }
 
+        [MenuItem("Castle of Ideas/Apply Local Streaming Configuration")]
+        public static void ApplyLocalStreamingConfigurationFromMenu()
+        {
+            if (SceneManager.GetActiveScene().path != ScenePath)
+            {
+                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
+
+            var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
+            var playerType = FindComponentType("CVRVideoPlayer");
+            var playerMarker = worldRoot == null
+                ? null
+                : FindDeepChild(worldRoot.transform, "PROGRAM_FEED_PLAYER");
+            var player = playerMarker == null || playerType == null
+                ? null
+                : playerMarker.GetComponent(playerType);
+            if (player == null)
+            {
+                throw new InvalidOperationException(
+                    "Build the complete CCK world before applying streaming.local.json."
+                );
+            }
+
+            ApplyLocalStreamingConfiguration(player, true);
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
+            ValidateWorldScene();
+        }
+
         [MenuItem("Castle of Ideas/Build World Scene")]
         public static void BuildWorldScene()
         {
@@ -97,8 +149,14 @@ namespace CastleOfIdeas.Editor
             model.transform.SetParent(worldRoot.transform, false);
 
             ConfigureGeometry(model);
-            ConfigureScreen(model, "SCREEN_MAIN_SURFACE", "MainScreen", "MainScreen.renderTexture");
-            ConfigureScreen(model, "SCREEN_SUB_SURFACE", "SubScreen", "SubScreen.renderTexture");
+            ConfigureScreen(model, "SCREEN_MAIN_SURFACE", "MainScreen", ProgramRenderTextureName);
+            ConfigureScreen(model, "SCREEN_SUB_SURFACE", "SubScreen", ProgramRenderTextureName);
+            ConfigureScreen(
+                model,
+                "PORTAL_BRIDGE_SURFACE",
+                "PortalBridge",
+                "PortalBridge.renderTexture"
+            );
             CreateUnityLights(worldRoot.transform);
             CreateSetupNotes(worldRoot.transform);
 
@@ -113,6 +171,11 @@ namespace CastleOfIdeas.Editor
         [MenuItem("Castle of Ideas/Attach Available CCK Components")]
         public static void AttachAvailableCckComponents()
         {
+            AttachAvailableCckComponents(CaptureWorldIdentity());
+        }
+
+        private static void AttachAvailableCckComponents(WorldIdentity identity)
+        {
             var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
             if (worldRoot == null)
             {
@@ -120,12 +183,14 @@ namespace CastleOfIdeas.Editor
             }
 
             var worldType = FindComponentType("CVRWorld");
+            var assetInfoType = FindComponentType("CVRAssetInfo");
             var playerType = FindComponentType("CVRVideoPlayer");
             var interactableType = FindComponentType("CVRInteractable");
             var actionType = FindType("CVRInteractableAction");
             var operationType = FindType("CVRInteractableActionOperation");
             if (
                 worldType == null
+                || assetInfoType == null
                 || playerType == null
                 || interactableType == null
                 || actionType == null
@@ -139,6 +204,8 @@ namespace CastleOfIdeas.Editor
 
             var descriptor = FindOrCreate(worldRoot.transform, "CVR_WORLD_DESCRIPTOR");
             var worldComponent = AddComponentIfMissing(descriptor, worldType);
+            var assetInfo = AddComponentIfMissing(descriptor, assetInfoType);
+            RestoreWorldIdentity(assetInfo, identity);
             var primarySpawn = FindDeepChild(worldRoot.transform, "SPAWN_PRIMARY_EV");
             var safeRespawn = FindDeepChild(worldRoot.transform, "RESPAWN_SAFE_CORRIDOR");
             NormalizePrimarySpawn(primarySpawn, safeRespawn);
@@ -147,8 +214,17 @@ namespace CastleOfIdeas.Editor
             TrySetField(worldComponent, "spawnRadius", 0.25f);
             ConfigureReferenceCamera(worldRoot.transform, primarySpawn, worldComponent);
 
-            AttachVideoPlayer(worldRoot.transform, "SCREEN_MAIN_PLAYER", "MainScreen.renderTexture", playerType);
-            AttachVideoPlayer(worldRoot.transform, "SCREEN_SUB_PLAYER", "SubScreen.renderTexture", playerType);
+            var programPlayer = AttachVideoPlayer(
+                worldRoot.transform,
+                "PROGRAM_FEED_PLAYER",
+                ProgramRenderTextureName,
+                playerType
+            );
+            if (programPlayer == null)
+            {
+                throw new InvalidOperationException("PROGRAM_FEED_PLAYER was not found in the model.");
+            }
+            ApplyLocalStreamingConfiguration(programPlayer, false);
 
             var seatCount = 0;
             foreach (var transform in worldRoot.GetComponentsInChildren<Transform>(true))
@@ -176,7 +252,8 @@ namespace CastleOfIdeas.Editor
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             Debug.Log(
-                $"Attached the CCK world descriptor, two video players, and {seatCount} configured seats."
+                $"Attached the CCK world descriptor, one shared program video player, " +
+                $"and {seatCount} configured seats."
             );
         }
 
@@ -203,9 +280,15 @@ namespace CastleOfIdeas.Editor
             }
 
             var worldType = FindComponentType("CVRWorld");
+            var assetInfoType = FindComponentType("CVRAssetInfo");
             var playerType = FindComponentType("CVRVideoPlayer");
             var interactableType = FindComponentType("CVRInteractable");
-            if (worldType == null || playerType == null || interactableType == null)
+            if (
+                worldType == null
+                || assetInfoType == null
+                || playerType == null
+                || interactableType == null
+            )
             {
                 throw new InvalidOperationException("CCK 4 is not installed or did not compile.");
             }
@@ -214,6 +297,15 @@ namespace CastleOfIdeas.Editor
             var safeRespawn = FindDeepChild(worldRoot.transform, "RESPAWN_SAFE_CORRIDOR");
             var descriptor = FindDeepChild(worldRoot.transform, "CVR_WORLD_DESCRIPTOR");
             var worldComponent = descriptor == null ? null : descriptor.GetComponent(worldType);
+            var assetInfo = descriptor == null ? null : descriptor.GetComponent(assetInfoType);
+            if (
+                assetInfo == null
+                || GetFieldValue(assetInfo, "localEditorIdentifier") as string
+                    != StableLocalEditorIdentifier
+            )
+            {
+                errors.Add("CVRAssetInfo does not preserve the stable local world identifier.");
+            }
             if (worldComponent == null || !CollectionFieldContains(worldComponent, "spawns", primarySpawn?.gameObject))
             {
                 errors.Add("CVRWorld does not use SPAWN_PRIMARY_EV as its spawn point.");
@@ -244,9 +336,9 @@ namespace CastleOfIdeas.Editor
             }
 
             var videoPlayers = worldRoot.GetComponentsInChildren(playerType, true);
-            if (videoPlayers.Length != 2)
+            if (videoPlayers.Length != 1)
             {
-                errors.Add($"Expected 2 CVRVideoPlayer components, found {videoPlayers.Length}.");
+                errors.Add($"Expected 1 shared CVRVideoPlayer component, found {videoPlayers.Length}.");
             }
             foreach (var player in videoPlayers)
             {
@@ -254,6 +346,49 @@ namespace CastleOfIdeas.Editor
                 {
                     errors.Add($"{player.gameObject.name} has no projection RenderTexture.");
                 }
+            }
+            var programPlayer = videoPlayers.SingleOrDefault();
+            if (programPlayer != null && programPlayer.gameObject.name != "PROGRAM_FEED_PLAYER")
+            {
+                errors.Add("The shared CVRVideoPlayer is not attached to PROGRAM_FEED_PLAYER.");
+            }
+            var programTexture = programPlayer == null
+                ? null
+                : GetFieldValue(programPlayer, "ProjectionTexture") as RenderTexture;
+            foreach (var surfaceName in new[] { "SCREEN_MAIN_SURFACE", "SCREEN_SUB_SURFACE" })
+            {
+                var surface = FindDeepChild(worldRoot.transform, surfaceName);
+                var renderer = surface == null ? null : surface.GetComponent<Renderer>();
+                if (
+                    renderer == null
+                    || renderer.sharedMaterial == null
+                    || renderer.sharedMaterial.mainTexture != programTexture
+                )
+                {
+                    errors.Add($"{surfaceName} does not use the shared program RenderTexture.");
+                }
+            }
+
+            var portalSurface = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_SURFACE");
+            var portalPlayerMarker = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_PLAYER");
+            var portalViewAnchor = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_VIEW_ANCHOR");
+            var portalVoiceAnchor = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_VOICE_ANCHOR");
+            var portalCameraTarget = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_CAMERA_TARGET");
+            if (
+                portalSurface == null
+                || portalPlayerMarker == null
+                || portalViewAnchor == null
+                || portalVoiceAnchor == null
+                || portalCameraTarget == null
+            )
+            {
+                errors.Add("The portal bridge surface or one of its future integration markers is missing.");
+            }
+            if (portalPlayerMarker != null && portalPlayerMarker.GetComponent(playerType) != null)
+            {
+                errors.Add(
+                    "PORTAL_BRIDGE_PLAYER must remain a scaffold until its low-latency transport is validated."
+                );
             }
 
             var seatMarkers = worldRoot
@@ -291,7 +426,7 @@ namespace CastleOfIdeas.Editor
 
             Debug.Log(
                 $"Castle of Ideas validation passed: 1 EV spawn, 1 reference camera, " +
-                $"{videoPlayers.Length} video players, " +
+                $"1 shared program video player, 2 linked lecture screens, 1 portal scaffold, " +
                 $"and {configuredSeatCount} seats."
             );
         }
@@ -447,7 +582,7 @@ namespace CastleOfIdeas.Editor
             }
         }
 
-        private static void AttachVideoPlayer(
+        private static Component AttachVideoPlayer(
             Transform root,
             string objectName,
             string renderTextureName,
@@ -458,7 +593,7 @@ namespace CastleOfIdeas.Editor
             if (playerTransform == null)
             {
                 Debug.LogWarning($"Video player marker {objectName} was not found.");
-                return;
+                return null;
             }
 
             var component = AddComponentIfMissing(playerTransform.gameObject, playerType);
@@ -467,8 +602,123 @@ namespace CastleOfIdeas.Editor
             );
             TryAssignProjectionTexture(component, renderTexture);
             TrySetField(component, "syncEnabled", true);
-            TrySetField(component, "interactiveUI", true);
+            TrySetEnumField(component, "audioPlaybackMode", "Direct");
+            TrySetField(component, "playbackVolume", 1f);
+            TrySetField(component, "interactiveUI", false);
             TrySetField(component, "autoplay", false);
+            TrySetField(component, "playOnAwakeObject", null);
+            return component;
+        }
+
+        private static void ApplyLocalStreamingConfiguration(Component player, bool required)
+        {
+            var absolutePath = Path.Combine(
+                Directory.GetParent(Application.dataPath)?.FullName
+                    ?? throw new InvalidOperationException("Unity project root could not be resolved."),
+                LocalStreamingConfigPath
+            );
+            if (!File.Exists(absolutePath))
+            {
+                TrySetField(player, "autoplay", false);
+                TrySetField(player, "interactiveUI", false);
+                TrySetField(player, "playOnAwakeObject", null);
+                if (required)
+                {
+                    throw new FileNotFoundException(
+                        $"Copy streaming.example.json to {LocalStreamingConfigPath} and add the viewer URL.",
+                        absolutePath
+                    );
+                }
+                Debug.Log(
+                    "No local streaming configuration was found; the program player remains safely idle."
+                );
+                return;
+            }
+
+            var config = JsonUtility.FromJson<StreamingConfig>(File.ReadAllText(absolutePath));
+            ValidateStreamingConfig(config);
+
+            var entryField = GetField(player, "playOnAwakeObject");
+            if (entryField == null)
+            {
+                throw new InvalidOperationException(
+                    $"{player.GetType().FullName}.playOnAwakeObject was not found."
+                );
+            }
+            var entry = Activator.CreateInstance(entryField.FieldType);
+            TrySetField(entry, "videoUrl", config.programHlsUrl);
+            TrySetField(entry, "videoTitle", "Program Feed");
+            TrySetField(entry, "introEndInSeconds", 0);
+            TrySetField(entry, "creditsStartInSeconds", 0);
+            TrySetField(entry, "thumbnailUrl", string.Empty);
+
+            TrySetField(player, "playOnAwakeObject", entry);
+            TrySetField(player, "syncEnabled", true);
+            TrySetEnumField(player, "audioPlaybackMode", "Direct");
+            TrySetField(player, "playbackVolume", config.playbackVolume);
+            TrySetField(player, "interactiveUI", config.interactiveUi);
+            TrySetField(player, "autoplay", config.autoplay);
+            Debug.Log(
+                "Applied the local program HLS configuration without printing its capability URL."
+            );
+        }
+
+        private static void ValidateStreamingConfig(StreamingConfig config)
+        {
+            if (config == null || config.schemaVersion != 1)
+            {
+                throw new InvalidOperationException(
+                    "streaming.local.json must use supported schemaVersion 1."
+                );
+            }
+            if (
+                !Uri.TryCreate(config.programHlsUrl, UriKind.Absolute, out var uri)
+                || uri.Scheme != Uri.UriSchemeHttps
+                || !uri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                throw new InvalidOperationException(
+                    "programHlsUrl must be an absolute HTTPS URL ending in .m3u8."
+                );
+            }
+            if (config.playbackVolume < 0f || config.playbackVolume > 1f)
+            {
+                throw new InvalidOperationException("playbackVolume must be between 0 and 1.");
+            }
+        }
+
+        private static WorldIdentity CaptureWorldIdentity()
+        {
+            var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
+            var descriptor = worldRoot == null
+                ? null
+                : FindDeepChild(worldRoot.transform, "CVR_WORLD_DESCRIPTOR");
+            var assetInfoType = FindComponentType("CVRAssetInfo");
+            var assetInfo = descriptor == null || assetInfoType == null
+                ? null
+                : descriptor.GetComponent(assetInfoType);
+            if (assetInfo == null)
+            {
+                return null;
+            }
+            return new WorldIdentity
+            {
+                objectId = GetFieldValue(assetInfo, "objectId") as string,
+                randomNum = GetFieldValue(assetInfo, "randomNum") as string
+            };
+        }
+
+        private static void RestoreWorldIdentity(Component assetInfo, WorldIdentity identity)
+        {
+            TrySetField(assetInfo, "localEditorIdentifier", StableLocalEditorIdentifier);
+            if (!string.IsNullOrEmpty(identity?.objectId))
+            {
+                TrySetField(assetInfo, "objectId", identity.objectId);
+            }
+            if (!string.IsNullOrEmpty(identity?.randomNum))
+            {
+                TrySetField(assetInfo, "randomNum", identity.randomNum);
+            }
         }
 
         private static void ConfigureSeat(
@@ -768,7 +1018,7 @@ namespace CastleOfIdeas.Editor
         private static void CreateSetupNotes(Transform root)
         {
             var notes = new GameObject(
-                "SETUP_REQUIRED__IMPORT_CCK4__CONFIGURE_VIDEO_URLS__BAKE_LIGHTING"
+                "SETUP_REQUIRED__IMPORT_CCK4__OPTIONAL_LOCAL_STREAM_CONFIG__BAKE_LIGHTING"
             );
             notes.transform.SetParent(root, false);
             notes.SetActive(false);

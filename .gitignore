@@ -55,3 +55,4 @@ recordings/
 
 # Local CVXR configuration
 streaming.local.json
+streaming.local.json.meta

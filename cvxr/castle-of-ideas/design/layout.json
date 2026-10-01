@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "units": "meters",
   "sourcePlan": {
     "name": "性DEC #6会場図.svg",
@@ -83,6 +83,27 @@
       "width": 6.4,
       "height": 3.6,
       "faces": "west"
+    },
+    "portal": {
+      "center": [22.2, 14.26, 2.35],
+      "width": 2.88,
+      "height": 1.62,
+      "faces": "south",
+      "purpose": "future low-latency bridge from the physical salon; scaffold only"
+    }
+  },
+  "mediaTopology": {
+    "programFeed": {
+      "playerCount": 1,
+      "outputs": ["main", "sub"],
+      "audioMode": "direct-2d",
+      "transport": "https-hls"
+    },
+    "portalBridge": {
+      "playerCount": 0,
+      "outputs": ["portal"],
+      "status": "scaffold-only",
+      "transport": "to-be-validated"
     }
   },
   "spawns": {
@@ -126,6 +147,7 @@
     "MAT_ELEVATOR_WOOD": "dark elevator cabin paneling",
     "MAT_ELEVATOR_CARPET": "deep blue elevator floor",
     "MAT_ELEVATOR_MIRROR": "reflective rear accent panel",
-    "MAT_SCREEN_PLACEHOLDER": "video render target placeholder"
+    "MAT_SCREEN_PLACEHOLDER": "lecture video render target placeholder",
+    "MAT_PORTAL_PLACEHOLDER": "future low-latency bridge placeholder"
   }
 }

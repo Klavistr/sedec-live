@@ -18,6 +18,7 @@ Blender で `MAT_` から始まるマテリアルを差し替えると、同じ�
 | `MAT_ELEVATOR_WOOD` | EV内装の木質パネル |
 | `MAT_ELEVATOR_CARPET` | EV床の深い青色カーペット |
 | `MAT_ELEVATOR_MIRROR` | EV奥の鏡・反射パネル |
-| `MAT_SCREEN_PLACEHOLDER` | Unity で RenderTexture 用素材へ置換 |
+| `MAT_SCREEN_PLACEHOLDER` | Unity で共有講演 RenderTexture 用素材へ置換 |
+| `MAT_PORTAL_PLACEHOLDER` | 異界の門の低遅延映像用。方式確定までは発光プレースホルダー |
 
 実テクスチャを入れる場合もマテリアル名は維持してください。Unity のセットアップツールが名前を手掛かりにスクリーンなどを識別します。
