@@ -193,6 +193,59 @@ def box(
     return obj
 
 
+def video_surface(
+    name: str,
+    location,
+    width: float,
+    height: float,
+    faces: str,
+    material_name: str,
+    *,
+    target_collection: str = "Screens",
+) -> bpy.types.Object:
+    """Create a single display quad with a full-range 0..1 UV map.
+
+    Blender cube UVs allocate only part of the texture to each face, which crops
+    a RenderTexture when a thin cube is used as a screen.  Keeping the visible
+    surface as a dedicated quad also makes later material replacement predictable.
+    """
+
+    if faces in ("north", "south"):
+        vertices = [
+            (-width / 2, 0.0, -height / 2),
+            (width / 2, 0.0, -height / 2),
+            (width / 2, 0.0, height / 2),
+            (-width / 2, 0.0, height / 2),
+        ]
+        if faces == "north":
+            vertices.reverse()
+    elif faces in ("east", "west"):
+        vertices = [
+            (0.0, -width / 2, -height / 2),
+            (0.0, -width / 2, height / 2),
+            (0.0, width / 2, height / 2),
+            (0.0, width / 2, -height / 2),
+        ]
+        if faces == "east":
+            vertices.reverse()
+    else:
+        raise ValueError(f"Unsupported display direction: {faces}")
+
+    mesh = bpy.data.meshes.new(f"{name}_MESH")
+    mesh.from_pydata(vertices, [], [(0, 1, 2, 3)])
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    for loop, uv in zip(mesh.polygons[0].loop_indices, ((0, 0), (1, 0), (1, 1), (0, 1))):
+        uv_layer.data[loop].uv = uv
+
+    obj = bpy.data.objects.new(name, mesh)
+    obj.location = location
+    if MATERIALS.get(material_name):
+        mesh.materials.append(MATERIALS[material_name])
+    collection(target_collection).objects.link(obj)
+    return obj
+
+
 def cylinder(
     name: str,
     location,
@@ -556,7 +609,9 @@ def create_screen(name: str, screen: dict) -> None:
     faces = screen["faces"]
     frame_mat = "MAT_MAIN_METAL" if name == "MAIN" else "MAT_SUB_ACCENT_BLUE"
     if faces in ("north", "south"):
-        box(f"SCREEN_{name}_SURFACE", (x, y, z), (width, 0.08, height), "MAT_SCREEN_PLACEHOLDER", target_collection="Screens", bevel=0.01)
+        box(f"SCREEN_{name}_BACKING", (x, y, z), (width, 0.08, height), "MAT_BLACKOUT", target_collection="Screens", bevel=0.01)
+        surface_offset = -0.041 if faces == "south" else 0.041
+        video_surface(f"SCREEN_{name}_SURFACE", (x, y + surface_offset, z), width, height, faces, "MAT_SCREEN_PLACEHOLDER")
         for suffix, sx, sz, size in (
             ("LEFT", x - width / 2 - 0.08, z, (0.16, 0.14, height + 0.32)),
             ("RIGHT", x + width / 2 + 0.08, z, (0.16, 0.14, height + 0.32)),
@@ -565,7 +620,9 @@ def create_screen(name: str, screen: dict) -> None:
         ):
             box(f"SCREEN_{name}_FRAME_{suffix}", (sx, y - 0.02, sz), size, frame_mat, target_collection="Screens", bevel=0.02)
     else:
-        box(f"SCREEN_{name}_SURFACE", (x, y, z), (0.08, width, height), "MAT_SCREEN_PLACEHOLDER", target_collection="Screens", bevel=0.01)
+        box(f"SCREEN_{name}_BACKING", (x, y, z), (0.08, width, height), "MAT_BLACKOUT", target_collection="Screens", bevel=0.01)
+        surface_offset = -0.041 if faces == "west" else 0.041
+        video_surface(f"SCREEN_{name}_SURFACE", (x + surface_offset, y, z), width, height, faces, "MAT_SCREEN_PLACEHOLDER")
         for suffix, sy, sz, size in (
             ("LEFT", y - width / 2 - 0.08, z, (0.14, 0.16, height + 0.32)),
             ("RIGHT", y + width / 2 + 0.08, z, (0.14, 0.16, height + 0.32)),
@@ -584,49 +641,69 @@ def create_media_markers(config: dict) -> None:
     player = empty("PROGRAM_FEED_PLAYER", (x, y, z), target_collection="Gimmicks")
     player["castle_of_ideas_role"] = "shared-cvr-video-player"
     player["stream_slot"] = "program"
+    panel = empty(
+        "PROGRAM_CONTROL_PANEL",
+        (15.25, 1.72, 1.55),
+        target_collection="Gimmicks",
+        display="CUBE",
+    )
+    panel["castle_of_ideas_role"] = "instance-owner-media-controls"
 
 
 def create_portal(portal: dict) -> None:
     width = portal["width"]
     height = portal["height"]
     x, y, z = portal["center"]
-    if portal["faces"] != "south":
-        raise ValueError("The initial portal scaffold must face south.")
+    faces = portal["faces"]
+    if faces not in ("north", "south", "east", "west"):
+        raise ValueError(f"Unsupported portal direction: {faces}")
 
-    box(
-        "PORTAL_BRIDGE_SURFACE",
-        (x, y, z),
-        (width, 0.08, height),
-        "MAT_PORTAL_PLACEHOLDER",
-        target_collection="Screens",
-        bevel=0.03,
-    )
-    for suffix, sx, sz, size, material_name in (
-        ("LEFT_OUTER", x - width / 2 - 0.16, z, (0.22, 0.18, height + 0.62), "MAT_SUB_TRIM_WHITE"),
-        ("RIGHT_OUTER", x + width / 2 + 0.16, z, (0.22, 0.18, height + 0.62), "MAT_SUB_TRIM_WHITE"),
-        ("TOP_OUTER", x, z + height / 2 + 0.16, (width + 0.54, 0.18, 0.22), "MAT_SUB_TRIM_WHITE"),
-        ("BOTTOM_OUTER", x, z - height / 2 - 0.16, (width + 0.54, 0.18, 0.22), "MAT_SUB_TRIM_WHITE"),
-        ("LEFT_INNER", x - width / 2 - 0.05, z, (0.08, 0.20, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
-        ("RIGHT_INNER", x + width / 2 + 0.05, z, (0.08, 0.20, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
-        ("TOP_INNER", x, z + height / 2 + 0.05, (width + 0.18, 0.20, 0.08), "MAT_SUB_ACCENT_BLUE"),
-        ("BOTTOM_INNER", x, z - height / 2 - 0.05, (width + 0.18, 0.20, 0.08), "MAT_SUB_ACCENT_BLUE"),
-    ):
+    if faces in ("north", "south"):
+        box("PORTAL_BRIDGE_BACKING", (x, y, z), (width, 0.08, height), "MAT_BLACKOUT", target_collection="Screens", bevel=0.03)
+        surface_offset = -0.041 if faces == "south" else 0.041
+        video_surface("PORTAL_BRIDGE_SURFACE", (x, y + surface_offset, z), width, height, faces, "MAT_PORTAL_PLACEHOLDER")
+        frame_specs = (
+            ("LEFT_OUTER", (x - width / 2 - 0.16, y, z), (0.22, 0.18, height + 0.62), "MAT_SUB_TRIM_WHITE"),
+            ("RIGHT_OUTER", (x + width / 2 + 0.16, y, z), (0.22, 0.18, height + 0.62), "MAT_SUB_TRIM_WHITE"),
+            ("TOP_OUTER", (x, y, z + height / 2 + 0.16), (width + 0.54, 0.18, 0.22), "MAT_SUB_TRIM_WHITE"),
+            ("BOTTOM_OUTER", (x, y, z - height / 2 - 0.16), (width + 0.54, 0.18, 0.22), "MAT_SUB_TRIM_WHITE"),
+            ("LEFT_INNER", (x - width / 2 - 0.05, y, z), (0.08, 0.20, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
+            ("RIGHT_INNER", (x + width / 2 + 0.05, y, z), (0.08, 0.20, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
+            ("TOP_INNER", (x, y, z + height / 2 + 0.05), (width + 0.18, 0.20, 0.08), "MAT_SUB_ACCENT_BLUE"),
+            ("BOTTOM_INNER", (x, y, z - height / 2 - 0.05), (width + 0.18, 0.20, 0.08), "MAT_SUB_ACCENT_BLUE"),
+        )
+        finials = ((x - width / 2 - 0.16, y, z + height / 2 + 0.38), (x + width / 2 + 0.16, y, z + height / 2 + 0.38))
+    else:
+        box("PORTAL_BRIDGE_BACKING", (x, y, z), (0.08, width, height), "MAT_BLACKOUT", target_collection="Screens", bevel=0.03)
+        surface_offset = -0.041 if faces == "west" else 0.041
+        video_surface("PORTAL_BRIDGE_SURFACE", (x + surface_offset, y, z), width, height, faces, "MAT_PORTAL_PLACEHOLDER")
+        frame_specs = (
+            ("LEFT_OUTER", (x, y - width / 2 - 0.16, z), (0.18, 0.22, height + 0.62), "MAT_SUB_TRIM_WHITE"),
+            ("RIGHT_OUTER", (x, y + width / 2 + 0.16, z), (0.18, 0.22, height + 0.62), "MAT_SUB_TRIM_WHITE"),
+            ("TOP_OUTER", (x, y, z + height / 2 + 0.16), (0.18, width + 0.54, 0.22), "MAT_SUB_TRIM_WHITE"),
+            ("BOTTOM_OUTER", (x, y, z - height / 2 - 0.16), (0.18, width + 0.54, 0.22), "MAT_SUB_TRIM_WHITE"),
+            ("LEFT_INNER", (x, y - width / 2 - 0.05, z), (0.20, 0.08, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
+            ("RIGHT_INNER", (x, y + width / 2 + 0.05, z), (0.20, 0.08, height + 0.18), "MAT_SUB_ACCENT_BLUE"),
+            ("TOP_INNER", (x, y, z + height / 2 + 0.05), (0.20, width + 0.18, 0.08), "MAT_SUB_ACCENT_BLUE"),
+            ("BOTTOM_INNER", (x, y, z - height / 2 - 0.05), (0.20, width + 0.18, 0.08), "MAT_SUB_ACCENT_BLUE"),
+        )
+        finials = ((x, y - width / 2 - 0.16, z + height / 2 + 0.38), (x, y + width / 2 + 0.16, z + height / 2 + 0.38))
+
+    frame_offset = {"south": (0, -0.02, 0), "north": (0, 0.02, 0), "west": (-0.02, 0, 0), "east": (0.02, 0, 0)}[faces]
+    for suffix, position, size, material_name in frame_specs:
         box(
             f"PORTAL_BRIDGE_FRAME_{suffix}",
-            (sx, y - 0.02, sz),
+            tuple(position[index] + frame_offset[index] for index in range(3)),
             size,
             material_name,
             target_collection="Screens",
             bevel=0.04,
         )
 
-    for side, finial_x in (
-        ("LEFT", x - width / 2 - 0.16),
-        ("RIGHT", x + width / 2 + 0.16),
-    ):
+    for side, finial_position in zip(("LEFT", "RIGHT"), finials):
         cylinder(
             f"PORTAL_BRIDGE_FINIAL_{side}",
-            (finial_x, y - 0.03, z + height / 2 + 0.38),
+            finial_position,
             0.11,
             0.22,
             "MAT_SUB_ACCENT_BLUE",
@@ -637,11 +714,15 @@ def create_portal(portal: dict) -> None:
     surface["castle_of_ideas_role"] = "portal-video-surface"
     surface["stream_slot"] = "bridge"
 
+    inward = {"south": (0, -1), "north": (0, 1), "west": (-1, 0), "east": (1, 0)}[faces]
+    def toward_room(distance: float, marker_z: float):
+        return (x + inward[0] * distance, y + inward[1] * distance, marker_z)
+
     for marker_name, marker_location, role in (
-        ("PORTAL_BRIDGE_PLAYER", (x, y - 0.15, z), "future-cvr-video-player"),
-        ("PORTAL_BRIDGE_VIEW_ANCHOR", (x, y - 1.8, 1.65), "portal-viewpoint"),
-        ("PORTAL_BRIDGE_VOICE_ANCHOR", (x, y - 0.5, 1.65), "portal-voice-anchor"),
-        ("PORTAL_BRIDGE_CAMERA_TARGET", (x, y - 0.12, 1.65), "portal-camera-target"),
+        ("PORTAL_BRIDGE_PLAYER", toward_room(0.15, z), "future-cvr-video-player"),
+        ("PORTAL_BRIDGE_VIEW_ANCHOR", toward_room(1.8, 1.65), "portal-viewpoint"),
+        ("PORTAL_BRIDGE_VOICE_ANCHOR", toward_room(0.5, 1.65), "portal-voice-anchor"),
+        ("PORTAL_BRIDGE_CAMERA_TARGET", toward_room(0.12, 1.65), "portal-camera-target"),
     ):
         marker = empty(
             marker_name,

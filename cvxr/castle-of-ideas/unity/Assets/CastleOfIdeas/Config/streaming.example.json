@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "programHlsUrl": "https://stream.example.invalid/live/replace-with-viewer-key/index.m3u8",
-  "autoplay": true,
-  "interactiveUi": false,
-  "playbackVolume": 1.0,
-  "notes": "Copy this file to streaming.local.json. The local file is ignored by Git. Never commit viewer keys or signed URLs."
-}

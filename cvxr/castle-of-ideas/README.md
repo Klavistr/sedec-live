@@ -86,19 +86,19 @@ CCK は公式 Unity Package をローカル導入し、配布物そのものは�
 
 ## 配信スクリーン
 
-メインとサブにそれぞれ 16:9 スクリーンを用意します。講演本線は CCK の [`CVR Video Player`](https://docs.chilloutvr.net/cck/components/cvr-video-player/) 1台だけで再生し、同じ `ProgramFeed.renderTexture` を両方のスクリーン材質で共有します。これにより、各参加者のPCで同じHLSを二重に取得・デコードしません。講演音声は両室共通の2D音声です。
+メインとサブにそれぞれ 16:9 スクリーンを用意します。表示面は0〜1のUVを全面に割り当てた専用Quadで、講演本線は CCK の [`CVR Video Player`](https://docs.chilloutvr.net/cck/components/cvr-video-player/) 1台だけで再生し、同じ `ProgramFeed.renderTexture` を両方のスクリーン材質で共有します。これにより、映像をクロップせず、各参加者のPCで同じHLSを二重に取得・デコードしません。
 
-ワールドはURL未設定の安全な待機状態を既定とし、イベント固有の配信先はローカル設定として分離します。`unity/Assets/CastleOfIdeas/Config/streaming.example.json` を同じ場所の `streaming.local.json` へコピーし、視聴URLを設定してから `Castle of Ideas > Build Complete CCK World` または `Apply Local Streaming Configuration` を実行します。ローカル設定はGit管理されず、URLはUnityのログにも出しません。
+ワールドはURL未設定の安全な待機状態を既定とします。エレベーター付近の `PROGRAM FEED CONTROL` でHTTPSの `.m3u8` 受信URLを入力し、`URLを適用` を押すと同期プレイヤーへ反映します。HLSの準備前に失敗した場合は `再読込` で復帰できます。URL入力欄はマスク表示で、適用・再読込操作はインスタンスオーナーだけが実行します。
 
-`interactiveUi` は既定で `false` です。現在のCCK標準UIだけでは「インスタンスオーナーだけ表示」を保証できないため、固定URLを自動再生する初期構成ではUI自体を出しません。将来オーナー専用操作を実装するまでは、URL変更時にローカル設定からワールドを再ビルドします。ただし、映像は各参加者のPCが直接取得するため、ワールドへ設定した視聴URLを参加者から完全に秘匿することはできません。
+講演音声は2D Audio Sourceから専用AudioMixerへ送り、各ユーザーが −60〜+12 dBの範囲でローカル調整できます。0 dBが等倍、正値はブーストです。音量は同期しないため、他の参加者の聴取音量を変えません。ただし、映像は各参加者のPCが直接取得するため、同期された視聴URLを参加者から完全に秘匿することはできません。
 
 ### SEDEC連携
 
-SEDEC向けプリセットでは、配信元や管理用URLをワールドへ入れず、`https://sedec-doujin.jp/live/<viewer-key>/index.m3u8` 形式の視聴URLだけをローカル設定へ入れます。OBS用publish keyとは別で、viewer keyのリンクをserver側で外せば視聴URLだけを失効できます。このプリセット以外のワールド本体・アセット・実行時オブジェクトにはSEDEC固有名を含めません。
+SEDECで使う場合も、配信元や管理用URLをワールドへ入れず、`https://sedec-doujin.jp/live/<viewer-key>/index.m3u8` 形式の受信URLだけをワールド内UIへ入力します。OBS用publish keyとは別で、viewer keyのリンクをserver側で外せば受信URLだけを失効できます。この説明以外のワールド本体・アセット・実行時オブジェクトにはSEDEC固有名を含めません。
 
 ## 異界の門
 
-白いサブ自習室の北東に、リアル側サブ自習室とつなぐ小型16:9表示面を設けます。これは講演スクリーンとは別系統です。現段階ではフレームと表示面に加えて、次の編集用マーカーだけを配置します。
+白いサブ自習室の後方壁（講演スクリーンの反対側）に、リアル側サブ自習室とつなぐ小型16:9表示面を設けます。講演音声と将来のポータル音声が同じ方向から聞こえないよう、講演スクリーンとは反対側へ分離しています。これは講演スクリーンとは別系統です。現段階ではフレームと表示面に加えて、次の編集用マーカーだけを配置します。
 
 - `PORTAL_BRIDGE_PLAYER`: 将来の低遅延 Video Player 取付位置
 - `PORTAL_BRIDGE_VIEW_ANCHOR`: VR参加者が門を覗く基準位置
@@ -115,12 +115,13 @@ SEDEC向けプリセットでは、配信元や管理用URLをワールドへ入
 - [x] EV 内の主スポーン、廊下の安全復帰位置、各部屋の制作時テスト位置
 - [x] EV 内装、開扉状態、閉扉目標・トリガー・到着音マーカー
 - [x] 講演用 `CVR Video Player` の一重化、両室RenderTexture共有、2D音声
-- [x] Git管理外のローカル設定からHLS視聴URLを注入
-- [ ] インスタンスオーナー専用のVideo Player操作UI
+- [x] ワールド内UIからHLS受信URLを設定・再読込
+- [x] インスタンスオーナーだけがURLを反映するVideo Player操作UI
+- [x] 各ユーザー用の −60〜+12 dB音量調整
 - [x] 異界の門の表示面・視点・音声・プレイヤー取付マーカー
 - [ ] 異界の門の低遅延方式を実機検証して接続
 - [x] `CVR Interactable` による着席
-- [ ] ドア、照明、配信音量の操作
+- [ ] ドア、照明の操作
 - [x] CCK Local Test用Windows Previewの生成
 - [ ] 非公開アップロードと複数人同期確認
 - [ ] ライトベイク、Occlusion Culling、LTCGI

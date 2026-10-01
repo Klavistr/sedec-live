@@ -85,10 +85,10 @@
       "faces": "west"
     },
     "portal": {
-      "center": [22.2, 14.26, 2.35],
+      "center": [8.24, 9.25, 2.35],
       "width": 2.88,
       "height": 1.62,
-      "faces": "south",
+      "faces": "east",
       "purpose": "future low-latency bridge from the physical salon; scaffold only"
     }
   },
@@ -96,8 +96,14 @@
     "programFeed": {
       "playerCount": 1,
       "outputs": ["main", "sub"],
-      "audioMode": "direct-2d",
-      "transport": "https-hls"
+      "audioMode": "mixer-2d",
+      "transport": "https-hls",
+      "runtimeControls": {
+        "receiverUrl": "instance-owner",
+        "reload": true,
+        "volumeDb": [-60.0, 12.0],
+        "volumeScope": "local-user"
+      }
     },
     "portalBridge": {
       "playerCount": 0,
