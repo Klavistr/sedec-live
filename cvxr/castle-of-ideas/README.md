@@ -88,9 +88,17 @@ CCK は公式 Unity Package をローカル導入し、配布物そのものは�
 
 メインとサブにそれぞれ 16:9 スクリーンを用意します。表示面は0〜1のUVを全面に割り当てた専用Quadで、講演本線は CCK の [`CVR Video Player`](https://docs.chilloutvr.net/cck/components/cvr-video-player/) 1台だけで再生し、同じ `ProgramFeed.renderTexture` を両方のスクリーン材質で共有します。これにより、映像をクロップせず、各参加者のPCで同じHLSを二重に取得・デコードしません。
 
-ワールドはURL未設定の安全な待機状態を既定とします。エレベーター付近の `PROGRAM FEED CONTROL` でHTTPSの `.m3u8` 受信URLを入力し、`URLを適用` を押すと同期プレイヤーへ反映します。HLSの準備前に失敗した場合は `再読込` で復帰できます。URL入力欄はマスク表示で、適用・再読込操作はインスタンスオーナーだけが実行します。Windows Previewの `launch-castle-of-ideas-debug.cmd` から起動すると、ワールドとは別のPowerShell窓でLua・Video Player・HLS関連の `Player.log` を追跡できます。`診断ログ出力` ボタンはURL本体を出さず、バインディング状態、入力文字数、音量値をこの窓へ出力します。
+安定版ChilloutVRで確実に再生するため、HTTPSの `.m3u8` 受信URLはローカル設定からビルド用コピーへだけ注入し、Video Playerが入室時に自動再生します。リポジトリ上のシーンにはURLを保存しません。HLSの準備前に失敗した場合は、エレベーター付近の `PROGRAM FEED CONTROL` にある `配信を再読込` で復帰できます。Windows Previewの `launch-castle-of-ideas-debug.cmd` から起動すると、ワールドとは別のPowerShell窓でVideo Player・HLS関連の `Player.log` を追跡できます。
 
-講演音声は2D Audio Sourceから専用AudioMixerへ送り、各ユーザーが −60〜+12 dBの範囲でローカル調整できます。0 dBが等倍、正値はブーストです。音量は同期しないため、他の参加者の聴取音量を変えません。ただし、映像は各参加者のPCが直接取得するため、同期された視聴URLを参加者から完全に秘匿することはできません。
+`streaming.local.example.json` を `streaming.local.json` として同じディレクトリへコピーし、視聴用URLを設定してからPreviewまたは本番アップロードを実行します。`streaming.local.json` はGit管理外です。実URL入りZIPにはURLが抽出可能な形で含まれるため、GitHubではDraft Releaseなど限定された場所で扱います。
+
+```json
+{
+  "receiverUrl": "https://example.invalid/live/viewer-key/index.m3u8"
+}
+```
+
+講演音声は2D Audio Sourceから専用AudioMixerへ送り、各ユーザーが −12、−6、0、+6、+12 dBのプリセットでローカル調整できます。0 dBが等倍、正値はブーストです。Luaを使わずCCK標準InteractableとAudioMixer Snapshotで切り替えるため、安定版クライアントでも動作します。音量は同期しないため、他の参加者の聴取音量を変えません。ただし、映像は各参加者のPCが直接取得するため、同期された視聴URLを参加者から完全に秘匿することはできません。
 
 ### SEDEC連携
 
@@ -115,9 +123,9 @@ SEDECで使う場合も、配信元や管理用URLをワールドへ入れず、
 - [x] EV 内の主スポーン、廊下の安全復帰位置、各部屋の制作時テスト位置
 - [x] EV 内装、開扉状態、閉扉目標・トリガー・到着音マーカー
 - [x] 講演用 `CVR Video Player` の一重化、両室RenderTexture共有、2D音声
-- [x] ワールド内UIからHLS受信URLを設定・再読込
-- [x] インスタンスオーナーだけがURLを反映するVideo Player操作UI
-- [x] 各ユーザー用の −60〜+12 dB音量調整
+- [x] Git管理外の設定からHLS受信URLをビルド時注入・自動再生
+- [x] インスタンスオーナー用のVideo Player再読込ボタン
+- [x] 各ユーザー用の −12〜+12 dB段階式音量調整
 - [x] 異界の門の表示面・視点・音声・プレイヤー取付マーカー
 - [ ] 異界の門の低遅延方式を実機検証して接続
 - [x] `CVR Interactable` による着席

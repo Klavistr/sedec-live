@@ -6,13 +6,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORLD_PATH = ROOT / "cvxr" / "castle-of-ideas"
 LAYOUT_PATH = WORLD_PATH / "design" / "layout.json"
-PROGRAM_CONTROLS_PATH = (
+STREAMING_CONFIG_PATH = (
     WORLD_PATH
     / "unity"
     / "Assets"
     / "CastleOfIdeas"
-    / "Scripts"
-    / "program-media-controls.lua"
+    / "Editor"
+    / "CastleOfIdeasStreamingConfig.cs"
 )
 PREVIEW_BUILDER_PATH = (
     WORLD_PATH
@@ -66,8 +66,14 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertEqual(program["outputs"], ["main", "sub"])
         self.assertEqual(program["audioMode"], "mixer-2d")
         self.assertEqual(program["transport"], "https-hls")
-        self.assertEqual(program["runtimeControls"]["receiverUrl"], "instance-owner")
-        self.assertEqual(program["runtimeControls"]["volumeDb"], [-60.0, 12.0])
+        self.assertEqual(
+            program["runtimeControls"]["receiverUrl"],
+            "build-time-local-config",
+        )
+        self.assertEqual(
+            program["runtimeControls"]["volumePresetsDb"],
+            [-12.0, -6.0, 0.0, 6.0, 12.0],
+        )
         self.assertEqual(program["runtimeControls"]["volumeScope"], "local-user")
 
     def test_portal_is_scaffolded_without_committing_to_a_transport(self):
@@ -86,16 +92,18 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertGreater(screen["center"][0], portal["center"][0])
         self.assertAlmostEqual(portal["center"][0], dimensions["minX"] + 0.24)
 
-    def test_program_controls_load_runtime_bindings_and_emit_redacted_diagnostics(self):
-        script = PROGRAM_CONTROLS_PATH.read_text(encoding="utf-8")
-        self.assertIn('loadModule("UnityEngine.UI")', script)
-        self.assertIn('loadModule("CVR.CCK")', script)
-        self.assertIn("pcall(require, name)", script)
-        self.assertLess(script.index("[CastleOfIdeas] bootstrap"), script.index("pcall(require, name)"))
-        self.assertIn("module failed:", script)
-        self.assertIn("[CastleOfIdeas]", script)
-        self.assertIn("URL redacted", script)
-        self.assertIn("function DumpDiagnostics()", script)
+    def test_program_url_is_injected_only_into_the_temporary_build(self):
+        config_source = STREAMING_CONFIG_PATH.read_text(encoding="utf-8")
+        self.assertIn('ConfigFileName = "streaming.local.json"', config_source)
+        self.assertIn("uri.Scheme != Uri.UriSchemeHttps", config_source)
+        self.assertIn('EndsWith(".m3u8"', config_source)
+        self.assertIn("player.playOnAwakeObject = playOnAwake", config_source)
+        self.assertIn("player.autoplay = true", config_source)
+        self.assertIn("AddStringPersistentListener", config_source)
+        self.assertIn("(redacted, {receiverUrl.Length} characters)", config_source)
+
+        scene = WORLD_SCENE_PATH.read_text(encoding="utf-8")
+        self.assertNotIn("https://example.invalid/live/viewer-key/index.m3u8", scene)
 
     def test_windows_preview_includes_external_diagnostics_launcher(self):
         builder = PREVIEW_BUILDER_PATH.read_text(encoding="utf-8")
@@ -104,7 +112,7 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertIn("Player.log", builder)
         self.assertIn('$_ -notmatch ""\\[Cohtml\\]""', builder)
 
-    def test_program_control_button_actions_are_assigned_back_to_cck(self):
+    def test_native_program_control_actions_are_assigned_back_to_cck(self):
         setup_path = (
             WORLD_PATH
             / "unity"
@@ -114,14 +122,24 @@ class WorldLayoutTest(unittest.TestCase):
             / "CastleOfIdeasWorldSetup.cs"
         )
         setup = setup_path.read_text(encoding="utf-8")
-        method = setup.split("private static void ConfigureLuaButton", 1)[1]
+        method = setup.split("private static void ConfigureNativeButton", 1)[1]
         method = method.split("private static Text CreateUiText", 1)[0]
         self.assertIn('TrySetField(action, "operations", operations);', method)
         self.assertIn('TrySetField(interactable, "actions", actions);', method)
+        self.assertIn('TrySetEnumField(operation, "type", "MethodCall");', method)
 
         scene = WORLD_SCENE_PATH.read_text(encoding="utf-8")
-        for function_name in ("ApplyUrl", "ReloadUrl", "DumpDiagnostics"):
-            self.assertIn(f"stringVal: {function_name}", scene)
+        for object_name in (
+            "ReloadStreamButton",
+            "VolumeMinus12DbButton",
+            "VolumeMinus6DbButton",
+            "Volume0DbButton",
+            "VolumePlus6DbButton",
+            "VolumePlus12DbButton",
+        ):
+            self.assertIn(f"m_Name: {object_name}", scene)
+        self.assertNotIn("PROGRAM_MEDIA_CONTROLLER", scene)
+        self.assertNotIn("VolumeSlider", scene)
 
     def test_initial_seating_capacity_is_nontrivial(self):
         furniture = self.layout["furniture"]

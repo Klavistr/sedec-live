@@ -93,6 +93,7 @@ namespace CastleOfIdeas.Editor
 
             var localEditorIdentifier = assetInfo.localEditorIdentifier;
             var cckVersion = assetInfo.cckVersion;
+            var receiverUrl = CastleOfIdeasStreamingConfig.RequireReceiverUrl();
             var originalRandomNumber = assetInfo.randomNum;
             assetInfo.randomNum = new System.Random()
                 .Next(11111111, 99999999)
@@ -109,6 +110,10 @@ namespace CastleOfIdeas.Editor
                     BuildOutputPath = rawOutputPath
                 };
                 buildAsset = TempBuildAsset.Create(assetInfo, BuildPurpose.LocalTest);
+                CastleOfIdeasStreamingConfig.ApplyToBuildRoot(
+                    buildAsset.RootObject,
+                    receiverUrl
+                );
                 buildAsset.ValidateAsset();
                 buildAsset.PreProcessAsset();
                 buildAsset.SaveChangesToAsset();
@@ -217,7 +222,6 @@ if not exist ""%BUNDLE%"" (
   echo {BundleName} was not found next to this launcher.
   pause
   exit /b 1
-)
 for /f ""usebackq delims="" %%U in (`powershell -NoProfile -Command ""[uri]::EscapeDataString($env:BUNDLE)""`) do set ""ENCODED=%%U""
 start """" ""chilloutvr://test/world?objectId={localEditorIdentifier}&filepath=%ENCODED%""
 endlocal
@@ -257,7 +261,7 @@ Write-Host (""Watching: "" + $logPath) -ForegroundColor Green
 Write-Host ""The receiver URL is never printed by Castle of Ideas diagnostics."" -ForegroundColor DarkGray
 Write-Host ""Press Ctrl+C to stop watching.`n"" -ForegroundColor DarkGray
 
-$pattern = ""CastleOfIdeas|CVRLua|Lua|MoonSharp|program-media-controls|PROGRAM_MEDIA_CONTROLLER|VideoPlayer|AVPro|HLS|m3u8|Exception|Missing|referenced script|Error""
+$pattern = ""CastleOfIdeas|VideoPlayer|AVPro|HLS|m3u8|Exception|Missing|referenced script|Error""
 Get-Content -LiteralPath $logPath -Tail 250 -Wait | ForEach-Object {
     if ($_ -match $pattern -and $_ -notmatch ""\[Cohtml\]"") {
         $redactedLine = $_ -replace ""https://\S+"", ""https://[redacted]""
@@ -277,19 +281,18 @@ Requirements:
 
 Run launch-castle-of-ideas.cmd to open this build in ChilloutVR.
 Run launch-castle-of-ideas-debug.cmd instead to also open a separate diagnostics
-window. The diagnostics window follows ChilloutVR's Player.log and filters Lua,
-video-player, HLS, and Castle of Ideas messages. It never prints the receiver URL.
+window. The diagnostics window follows ChilloutVR's Player.log and filters
+video-player, HLS, and Castle of Ideas messages. It redacts HTTPS URLs.
 
 This is an offline Local Test preview. Other players cannot join it, and networking
 features are unavailable. The published multiplayer version is distributed through
 ChilloutVR itself rather than this ZIP package.
 
-No private HLS viewer URL is included in this preview. Enter an HTTPS .m3u8 receiver
-URL on the PROGRAM FEED CONTROL panel after entering the world. The main and sub
-lecture screens share one program player. Use Reload if the HLS feed was not ready
-when first applied. Per-user volume trim is available from -60 dB through +12 dB.
-Use the Diagnostics button to write the current binding and control state to the
-separate diagnostics window without revealing the receiver URL.
+This private preview contains a build-time HLS receiver URL. The URL is not printed
+in this README or in build-info.json, but it can be extracted from the world bundle;
+do not redistribute this ZIP. The main and sub lecture screens share one program
+player. Use Reload if the HLS feed was not ready when the world opened. Per-user
+volume presets are available from -12 dB through +12 dB.
 
 The purple portal is on the rear wall opposite the white salon screen. It remains a
 visual and integration scaffold; its future low-latency bridge is not connected yet.
@@ -306,8 +309,9 @@ visual and integration scaffold; its future low-latency bridge is not connected 
   ""cckVersion"": ""{cckVersion}"",
   ""programVideoPlayers"": 1,
   ""linkedLectureScreens"": 2,
-  ""runtimeReceiverUrlInput"": true,
-  ""volumeTrimDb"": [-60, 12],
+  ""receiverUrl"": ""embedded-redacted"",
+  ""runtimeReceiverUrlInput"": false,
+  ""volumePresetsDb"": [-12, -6, 0, 6, 12],
   ""externalDiagnostics"": true,
   ""portalStatus"": ""scaffold-only"",
   ""builtAtUtc"": ""{DateTime.UtcNow:O}""

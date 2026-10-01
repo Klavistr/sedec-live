@@ -5,9 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.Events;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -19,8 +21,6 @@ namespace CastleOfIdeas.Editor
         private const string ModelPath = "Assets/CastleOfIdeas/Models/castle-of-ideas.fbx";
         private const string GeneratedPath = "Assets/CastleOfIdeas/Generated";
         private const string ScenePath = "Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity";
-        private const string ProgramControlsLuaPath =
-            "Assets/CastleOfIdeas/Scripts/program-media-controls.lua";
         private const string ProgramAudioMixerPath =
             "Assets/CastleOfIdeas/Generated/ProgramAudio.mixer";
         private const string ProgramRenderTextureName = "ProgramFeed.renderTexture";
@@ -193,7 +193,6 @@ namespace CastleOfIdeas.Editor
             ConfigureProgramAudio(programPlayer);
             ConfigureProgramControlPanel(
                 worldRoot.transform,
-                programPlayer,
                 interactableType,
                 actionType,
                 operationType
@@ -370,33 +369,21 @@ namespace CastleOfIdeas.Editor
             }
 
             var controlPanel = FindDeepChild(worldRoot.transform, "PROGRAM_MEDIA_CONTROL_UI");
-            var urlInput = controlPanel == null
+            var reloadButton = controlPanel == null
                 ? null
-                : FindDeepChild(controlPanel, "UrlInput")?.GetComponent<InputField>();
-            var volumeSlider = controlPanel == null
-                ? null
-                : FindDeepChild(controlPanel, "VolumeSlider")?.GetComponent<Slider>();
-            var diagnosticsButton = controlPanel == null
-                ? null
-                : FindDeepChild(controlPanel, "DiagnosticsButton")?.GetComponent<Button>();
-            var luaType = FindComponentType("CVRLuaClientBehaviour");
-            var mediaController = controlPanel == null
-                ? null
-                : FindDeepChild(controlPanel, "PROGRAM_MEDIA_CONTROLLER");
+                : FindDeepChild(controlPanel, "ReloadStreamButton");
+            var volumeButtons = controlPanel == null
+                ? Array.Empty<Transform>()
+                : new[] { -12, -6, 0, 6, 12 }
+                    .Select(db => FindDeepChild(controlPanel, VolumeButtonName(db)))
+                    .ToArray();
             if (
                 controlPanel == null
-                || urlInput == null
-                || volumeSlider == null
-                || diagnosticsButton == null
-                || luaType == null
-                || mediaController?.GetComponent(luaType) == null
+                || reloadButton?.GetComponent(interactableType) == null
+                || volumeButtons.Any(button => button?.GetComponent(interactableType) == null)
             )
             {
-                errors.Add("The runtime URL/reload/dB media control panel is incomplete.");
-            }
-            else if (volumeSlider.minValue > -60f || volumeSlider.maxValue < 12f)
-            {
-                errors.Add("The program volume control must cover -60 dB through +12 dB.");
+                errors.Add("The native reload/dB media control panel is incomplete.");
             }
 
             var portalSurface = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_SURFACE");
@@ -465,7 +452,7 @@ namespace CastleOfIdeas.Editor
 
             Debug.Log(
                 $"Castle of Ideas validation passed: 1 EV spawn, 1 reference camera, " +
-                $"1 shared program video player, runtime URL/dB controls, 2 linked lecture screens, " +
+                $"1 shared program video player, build-time URL/native dB controls, 2 linked lecture screens, " +
                 $"1 rear-wall portal scaffold, " +
                 $"and {configuredSeatCount} seats."
             );
@@ -712,6 +699,7 @@ namespace CastleOfIdeas.Editor
             }
 
             EnsureExposedMixerVolume(mixer, "ProgramGain");
+            EnsureProgramVolumeSnapshots(mixer);
             var group = mixer.FindMatchingGroups("Master").FirstOrDefault();
             if (group == null)
             {
@@ -765,9 +753,87 @@ namespace CastleOfIdeas.Editor
             AssetDatabase.SaveAssets();
         }
 
+        private static void EnsureProgramVolumeSnapshots(AudioMixer mixer)
+        {
+            var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var controllerType = mixer.GetType();
+            var snapshotsProperty = controllerType.GetProperty("snapshots", flags);
+            var targetSnapshotProperty = controllerType.GetProperty("TargetSnapshot", flags);
+            var startSnapshotProperty = controllerType.GetProperty("startSnapshot", flags);
+            var cloneSnapshotMethod = controllerType.GetMethod(
+                "CloneNewSnapshotFromTarget",
+                flags,
+                null,
+                new[] { typeof(bool) },
+                null
+            );
+            var masterGroup = controllerType.GetProperty("masterGroup", flags)?.GetValue(mixer);
+            var setVolumeMethod = masterGroup?.GetType().GetMethod(
+                "SetValueForVolume",
+                flags
+            );
+            if (
+                snapshotsProperty == null
+                || targetSnapshotProperty == null
+                || startSnapshotProperty == null
+                || cloneSnapshotMethod == null
+                || masterGroup == null
+                || setVolumeMethod == null
+            )
+            {
+                throw new InvalidOperationException(
+                    "Unity AudioMixer internals changed; volume snapshots could not be created."
+                );
+            }
+
+            foreach (var db in new[] { -12, -6, 0, 6, 12 })
+            {
+                var snapshotName = VolumeSnapshotName(db);
+                var snapshot = mixer.FindSnapshot(snapshotName);
+                if (snapshot == null)
+                {
+                    var before = (snapshotsProperty.GetValue(mixer) as Array)?
+                        .Cast<AudioMixerSnapshot>()
+                        .ToArray() ?? Array.Empty<AudioMixerSnapshot>();
+                    cloneSnapshotMethod.Invoke(mixer, new object[] { false });
+                    snapshot = (snapshotsProperty.GetValue(mixer) as Array)?
+                        .Cast<AudioMixerSnapshot>()
+                        .FirstOrDefault(candidate => !before.Contains(candidate));
+                    if (snapshot == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Could not create AudioMixer snapshot {snapshotName}."
+                        );
+                    }
+                    snapshot.name = snapshotName;
+                    EditorUtility.SetDirty(snapshot);
+                }
+
+                setVolumeMethod.Invoke(
+                    masterGroup,
+                    new object[] { mixer, snapshot, (float)db }
+                );
+            }
+            targetSnapshotProperty.SetValue(
+                mixer,
+                startSnapshotProperty.GetValue(mixer)
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static string VolumeSnapshotName(int db)
+        {
+            return db > 0 ? $"Program +{db} dB" : $"Program {db} dB";
+        }
+
+        private static string VolumeButtonName(int db)
+        {
+            var sign = db > 0 ? "Plus" : db < 0 ? "Minus" : string.Empty;
+            return $"Volume{sign}{Math.Abs(db)}DbButton";
+        }
+
         private static void ConfigureProgramControlPanel(
             Transform worldRoot,
-            Component player,
             Type interactableType,
             Type actionType,
             Type operationType
@@ -793,7 +859,7 @@ namespace CastleOfIdeas.Editor
             );
             root.transform.SetParent(marker, false);
             var rootRect = (RectTransform)root.transform;
-            rootRect.sizeDelta = new Vector2(920f, 440f);
+            rootRect.sizeDelta = new Vector2(920f, 390f);
             rootRect.localScale = Vector3.one * 0.0015f;
             rootRect.localPosition = Vector3.zero;
             rootRect.localRotation = Quaternion.Euler(90f, 0f, 0f);
@@ -812,103 +878,91 @@ namespace CastleOfIdeas.Editor
             var panel = root.AddComponent<Image>();
             panel.color = new Color(0.035f, 0.045f, 0.07f, 0.96f);
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            CreateUiText("Title", rootRect, new Vector2(0, 178), new Vector2(850, 54), "PROGRAM FEED CONTROL", 34, font, TextAnchor.MiddleLeft, Color.white);
-            CreateUiText("OwnerNote", rootRect, new Vector2(0, 138), new Vector2(850, 34), "URL操作はインスタンスオーナーのみ / 音量は各自の端末のみ", 20, font, TextAnchor.MiddleLeft, new Color(0.63f, 0.8f, 1f));
-            CreateUiText("UrlLabel", rootRect, new Vector2(-345, 84), new Vector2(150, 36), "受信URL", 23, font, TextAnchor.MiddleLeft, Color.white);
+            CreateUiText("Title", rootRect, new Vector2(0, 150), new Vector2(850, 54), "PROGRAM FEED CONTROL", 34, font, TextAnchor.MiddleLeft, Color.white);
+            CreateUiText("ReceiverStatus", rootRect, new Vector2(0, 102), new Vector2(850, 40), "受信URL: ビルド時設定済み（非表示）", 22, font, TextAnchor.MiddleLeft, new Color(0.63f, 0.8f, 1f));
+            CreateUiText("ReceiverNote", rootRect, new Vector2(0, 66), new Vector2(850, 34), "映像が始まらない場合は再読込してください", 19, font, TextAnchor.MiddleLeft, new Color(0.78f, 0.84f, 0.9f));
 
-            var urlInput = CreateUiInputField(rootRect, new Vector2(35, 84), new Vector2(610, 48), font);
-            var keyboardType = FindComponentType("CVRInputFieldKeyboardHandler");
-            if (keyboardType != null)
+            var reloadButton = CreateUiButton("ReloadStreamButton", rootRect, new Vector2(0, 12), new Vector2(300, 56), "配信を再読込", font);
+            ConfigureNativeButton(
+                reloadButton.gameObject,
+                "Reload program feed",
+                interactableType,
+                actionType,
+                operationType,
+                "GlobalInstanceOwnerOnly",
+                null
+            );
+
+            CreateUiText("VolumeLabelTitle", rootRect, new Vector2(-345, -58), new Vector2(180, 36), "手元の音量", 22, font, TextAnchor.MiddleLeft, Color.white);
+            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath);
+            var buttonX = new[] { -244f, -122f, 0f, 122f, 244f };
+            var presets = new[] { -12, -6, 0, 6, 12 };
+            for (var index = 0; index < presets.Length; index++)
             {
-                AddComponentIfMissing(urlInput.gameObject, keyboardType);
-            }
-
-            var applyButton = CreateUiButton("ApplyUrlButton", rootRect, new Vector2(-250, 20), new Vector2(220, 54), "URLを適用", font);
-            var reloadButton = CreateUiButton("ReloadUrlButton", rootRect, new Vector2(0, 20), new Vector2(220, 54), "再読込", font);
-            var diagnosticsButton = CreateUiButton("DiagnosticsButton", rootRect, new Vector2(250, 20), new Vector2(220, 54), "診断ログ出力", font);
-            CreateUiText("VolumeLabelTitle", rootRect, new Vector2(-345, -55), new Vector2(150, 36), "音量", 23, font, TextAnchor.MiddleLeft, Color.white);
-            var volumeSlider = CreateUiSlider(rootRect, new Vector2(35, -55), new Vector2(610, 38));
-            volumeSlider.minValue = -60f;
-            volumeSlider.maxValue = 12f;
-            volumeSlider.value = 0f;
-            var volumeLabel = CreateUiText("VolumeValue", rootRect, new Vector2(365, -55), new Vector2(130, 38), "+0.0 dB", 22, font, TextAnchor.MiddleRight, Color.white);
-            var statusLabel = CreateUiText("Status", rootRect, new Vector2(0, -130), new Vector2(850, 62), "受信URLを入力して適用してください", 21, font, TextAnchor.MiddleLeft, new Color(0.78f, 0.84f, 0.9f));
-
-            var controller = new GameObject("PROGRAM_MEDIA_CONTROLLER");
-            controller.transform.SetParent(root.transform, false);
-            var luaType = FindComponentType("CVRLuaClientBehaviour");
-            var lua = luaType == null ? null : AddComponentIfMissing(controller, luaType);
-            var luaAsset = AssetDatabase.LoadMainAssetAtPath(ProgramControlsLuaPath);
-            if (lua == null || luaAsset == null)
-            {
-                throw new InvalidOperationException(
-                    "CVR Lua component or program-media-controls.lua asset was not found."
+                var db = presets[index];
+                var label = db > 0 ? $"+{db} dB" : $"{db} dB";
+                var button = CreateUiButton(
+                    VolumeButtonName(db),
+                    rootRect,
+                    new Vector2(buttonX[index], -112),
+                    new Vector2(108, 52),
+                    label,
+                    font
+                );
+                var snapshot = mixer?.FindSnapshot(VolumeSnapshotName(db));
+                if (snapshot == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Program AudioMixer snapshot {VolumeSnapshotName(db)} was not found."
+                    );
+                }
+                ConfigureNativeButton(
+                    button.gameObject,
+                    $"Set program volume to {label}",
+                    interactableType,
+                    actionType,
+                    operationType,
+                    "LocalNotNetworked",
+                    operation =>
+                    {
+                        var customEvent = GetFieldValue(operation, "customEvent") as UnityEvent;
+                        UnityEventTools.AddFloatPersistentListener(
+                            customEvent,
+                            snapshot.TransitionTo,
+                            0f
+                        );
+                    }
                 );
             }
-            TrySetField(lua, "localOnly", true);
-            TrySetField(lua, "asset", luaAsset);
-            ConfigureLuaBindings(
-                lua,
-                new Dictionary<string, UnityEngine.Object>
-                {
-                    ["ProgramPlayer"] = player,
-                    ["UrlInput"] = urlInput,
-                    ["VolumeSlider"] = volumeSlider,
-                    ["VolumeLabel"] = volumeLabel,
-                    ["StatusLabel"] = statusLabel,
-                    ["ProgramMixer"] = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath)
-                }
-            );
-            ConfigureLuaButton(applyButton.gameObject, controller, "ApplyUrl", interactableType, actionType, operationType);
-            ConfigureLuaButton(reloadButton.gameObject, controller, "ReloadUrl", interactableType, actionType, operationType);
-            ConfigureLuaButton(diagnosticsButton.gameObject, controller, "DumpDiagnostics", interactableType, actionType, operationType);
         }
 
-        private static void ConfigureLuaBindings(
-            Component lua,
-            IReadOnlyDictionary<string, UnityEngine.Object> bindings
-        )
-        {
-            var field = GetField(lua, "boundObjects");
-            var elementType = field?.FieldType.GetElementType();
-            if (field == null || elementType == null)
-            {
-                throw new InvalidOperationException("CVR Lua boundObjects field was not found.");
-            }
-            var values = Array.CreateInstance(elementType, bindings.Count);
-            var index = 0;
-            foreach (var binding in bindings)
-            {
-                var value = Activator.CreateInstance(elementType);
-                TrySetField(value, "name", binding.Key);
-                TrySetField(value, "boundThing", binding.Value);
-                values.SetValue(value, index++);
-            }
-            field.SetValue(lua, values);
-            EditorUtility.SetDirty(lua);
-        }
-
-        private static void ConfigureLuaButton(
+        private static void ConfigureNativeButton(
             GameObject button,
-            GameObject luaController,
-            string functionName,
+            string tooltip,
             Type interactableType,
             Type actionType,
-            Type operationType
+            Type operationType,
+            string executionType,
+            Action<object> configureOperation
         )
         {
             var interactable = AddComponentIfMissing(button, interactableType);
             TrySetField(interactable, "version", 1);
+            TrySetField(interactable, "tooltip", tooltip);
             var actions = CreateListForField(interactable, "actions");
             actions.Clear();
             var action = Activator.CreateInstance(actionType);
             TrySetEnumField(action, "actionType", "OnUnityUIPointerUp");
-            TrySetEnumField(action, "execType", "GlobalInstanceOwnerOnly");
+            TrySetEnumField(action, "execType", executionType);
             var operations = CreateListForField(action, "operations");
             var operation = Activator.CreateInstance(operationType);
-            TrySetEnumField(operation, "type", "LuaFunctionCall");
-            TrySetField(operation, "gameObjectVal", luaController);
-            TrySetField(operation, "stringVal", functionName);
+            if (operation == null)
+            {
+                throw new InvalidOperationException("Could not create a CCK action operation.");
+            }
+            TrySetEnumField(operation, "type", "MethodCall");
+            TrySetField(operation, "customEvent", new UnityEvent());
+            configureOperation?.Invoke(operation);
             operations.Add(operation);
             TrySetField(action, "operations", operations);
             actions.Add(action);
@@ -944,31 +998,6 @@ namespace CastleOfIdeas.Editor
             return text;
         }
 
-        private static InputField CreateUiInputField(
-            RectTransform parent,
-            Vector2 position,
-            Vector2 size,
-            Font font
-        )
-        {
-            var target = new GameObject("UrlInput", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(InputField));
-            target.transform.SetParent(parent, false);
-            var rect = (RectTransform)target.transform;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            target.GetComponent<Image>().color = new Color(0.92f, 0.95f, 1f, 1f);
-            var text = CreateUiText("Text", rect, Vector2.zero, new Vector2(size.x - 30, size.y - 8), string.Empty, 19, font, TextAnchor.MiddleLeft, new Color(0.04f, 0.06f, 0.1f));
-            var placeholder = CreateUiText("Placeholder", rect, Vector2.zero, new Vector2(size.x - 30, size.y - 8), "https://…/index.m3u8", 19, font, TextAnchor.MiddleLeft, new Color(0.35f, 0.4f, 0.48f));
-            var input = target.GetComponent<InputField>();
-            input.textComponent = text;
-            input.placeholder = placeholder;
-            input.contentType = InputField.ContentType.Password;
-            input.lineType = InputField.LineType.SingleLine;
-            input.asteriskChar = '•';
-            input.characterLimit = 2048;
-            return input;
-        }
-
         private static Button CreateUiButton(
             string name,
             RectTransform parent,
@@ -989,50 +1018,6 @@ namespace CastleOfIdeas.Editor
             button.targetGraphic = image;
             CreateUiText("Label", rect, Vector2.zero, size, label, 23, font, TextAnchor.MiddleCenter, Color.white);
             return button;
-        }
-
-        private static Slider CreateUiSlider(
-            RectTransform parent,
-            Vector2 position,
-            Vector2 size
-        )
-        {
-            var target = new GameObject("VolumeSlider", typeof(RectTransform), typeof(Slider));
-            target.transform.SetParent(parent, false);
-            var rect = (RectTransform)target.transform;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-
-            var background = new GameObject("Background", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            background.transform.SetParent(target.transform, false);
-            var backgroundRect = (RectTransform)background.transform;
-            backgroundRect.anchorMin = new Vector2(0f, 0.35f);
-            backgroundRect.anchorMax = new Vector2(1f, 0.65f);
-            backgroundRect.offsetMin = Vector2.zero;
-            backgroundRect.offsetMax = Vector2.zero;
-            background.GetComponent<Image>().color = new Color(0.17f, 0.2f, 0.27f, 1f);
-
-            var fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            fill.transform.SetParent(target.transform, false);
-            var fillRect = (RectTransform)fill.transform;
-            fillRect.anchorMin = new Vector2(0f, 0.35f);
-            fillRect.anchorMax = new Vector2(1f, 0.65f);
-            fillRect.offsetMin = Vector2.zero;
-            fillRect.offsetMax = Vector2.zero;
-            fill.GetComponent<Image>().color = new Color(0.2f, 0.64f, 0.88f, 1f);
-
-            var handle = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            handle.transform.SetParent(target.transform, false);
-            var handleRect = (RectTransform)handle.transform;
-            handleRect.sizeDelta = new Vector2(28f, 42f);
-            handle.GetComponent<Image>().color = Color.white;
-
-            var slider = target.GetComponent<Slider>();
-            slider.direction = Slider.Direction.LeftToRight;
-            slider.fillRect = fillRect;
-            slider.handleRect = handleRect;
-            slider.targetGraphic = handle.GetComponent<Image>();
-            return slider;
         }
 
         private static WorldIdentity CaptureWorldIdentity()
