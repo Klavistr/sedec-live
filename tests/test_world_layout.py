@@ -175,12 +175,18 @@ class WorldLayoutTest(unittest.TestCase):
 
     def test_generic_world_assets_do_not_contain_sedec_branding(self):
         intentional_integration_notes = {Path("README.md")}
+        local_only_settings = {
+            Path("streaming.local.json"),
+            Path("streaming.local.json.meta"),
+        }
 
         for path in WORLD_PATH.rglob("*"):
             relative = path.relative_to(WORLD_PATH)
             if any(part in GENERATED_OR_EXTERNAL_PARTS for part in relative.parts):
                 continue
             if relative in intentional_integration_notes:
+                continue
+            if relative in local_only_settings:
                 continue
 
             self.assertNotIn("sedec", str(relative).lower())
