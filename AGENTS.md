@@ -2,7 +2,7 @@
 
 ## Project context
 
-This repository contains production assets and helper tools used on the local streaming workstation for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `operator documentation`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Services, streaming infrastructure, and browser-source pages served from the upstream server belong in `external streaming service`.
+This repository contains production assets and helper tools used on the local streaming workstation for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `operator documentation`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Network-delivered services and browser-source implementations are outside this repository's scope.
 
 ## Before changing files
 
@@ -23,7 +23,7 @@ The helper tooling must continue to work with Python 3.11+ and the standard libr
 
 - Use kebab-case ASCII filenames unless an upstream application requires another name.
 - Keep local fallback screens usable at 1920x1080 and responsive when practical.
-- Refer to deployed browser sources through stable `external streaming service` URLs, not GitHub raw URLs or sibling-repository paths.
+- Refer to deployed browser sources through stable URLs designated by the event operators, not GitHub raw URLs or sibling-repository paths.
 - Use repository-relative paths for OBS media references whenever OBS permits it.
 - Do not commit stream keys, credentials, personal data, caches, or machine-specific absolute paths.
 - Do not add large binaries until Git LFS is installed and the tracking policy is documented.
