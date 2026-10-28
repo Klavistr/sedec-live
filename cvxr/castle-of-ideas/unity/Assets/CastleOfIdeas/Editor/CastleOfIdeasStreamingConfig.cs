@@ -82,30 +82,7 @@ namespace CastleOfIdeas.Editor
             player.playOnAwakeObject = playOnAwake;
             player.autoplay = true;
 
-            var reloadButton = FindDeepChild(sceneRoot.transform, "ReloadStreamButton");
-            var reloadInteractable = reloadButton == null
-                ? null
-                : reloadButton.GetComponent<CVRInteractable>();
-            var reloadOperation = reloadInteractable?.actions?
-                .SelectMany(action => action.operations)
-                .SingleOrDefault(operation =>
-                    operation.type == CVRInteractableActionOperation.ActionType.MethodCall
-                );
-            if (reloadOperation == null)
-            {
-                throw new InvalidOperationException(
-                    "ReloadStreamButton does not contain its native CCK MethodCall operation."
-                );
-            }
-
-            reloadOperation.customEvent = new UnityEvent();
-            UnityEventTools.AddStringPersistentListener(
-                reloadOperation.customEvent,
-                player.SetUrl,
-                receiverUrl
-            );
             EditorUtility.SetDirty(player);
-            EditorUtility.SetDirty(reloadInteractable);
             Debug.Log(
                 $"Castle of Ideas receiver URL injected into the temporary build " +
                 $"(redacted, {receiverUrl.Length} characters)."

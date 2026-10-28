@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace CastleOfIdeas.Editor
 {
     public static class CastleOfIdeasWorldSetup
     {
+        private static readonly HashSet<string> ConfiguredChairControllers = new HashSet<string>();
         private const string ModelPath = "Assets/CastleOfIdeas/Models/castle-of-ideas.fbx";
         private const string GeneratedPath = "Assets/CastleOfIdeas/Generated";
         private const string ScenePath = "Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity";
@@ -87,6 +89,65 @@ namespace CastleOfIdeas.Editor
             ValidateWorldScene();
         }
 
+        [MenuItem("Castle of Ideas/Render Interior Previews")]
+        public static void RenderInteriorPreviews()
+        {
+            if (EditorApplication.isPlaying)
+                throw new InvalidOperationException("Stop PlayMode before rendering editor previews.");
+            if (SceneManager.GetActiveScene().path != ScenePath)
+                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            ValidateWorldScene();
+            var root = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT").transform;
+            var main = FindDeepChild(root, "MAIN_FLOOR").position;
+            var screen = FindDeepChild(root, "SCREEN_MAIN_SURFACE").position;
+            var fireplace = FindDeepChild(root, "FIREPLACE_FLAME_ANCHOR").position;
+            var fire = FindDeepChild(root, "FIREPLACE_FIRE").GetComponent<ParticleSystem>();
+            fire.Simulate(1.0f, true, true, true);
+            Debug.Log($"Castle of Ideas native fireplace preview: {fire.particleCount} live particles.");
+            var directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../../preview"));
+            Directory.CreateDirectory(directory);
+            void Render(string name, Vector3 position, Vector3 target, float fieldOfView)
+            {
+                var cameraObject = new GameObject("TEMP_INTERIOR_PREVIEW_CAMERA");
+                var camera = cameraObject.AddComponent<Camera>();
+                var renderTexture = new RenderTexture(1600, 1000, 24);
+                var pixels = new Texture2D(1600, 1000, TextureFormat.RGB24, false);
+                var previous = RenderTexture.active;
+                try
+                {
+                    camera.transform.position = position;
+                    camera.transform.rotation = Quaternion.LookRotation(target - position);
+                    camera.fieldOfView = fieldOfView;
+                    camera.nearClipPlane = 0.05f;
+                    camera.farClipPlane = 100f;
+                    camera.targetTexture = renderTexture;
+                    camera.Render();
+                    RenderTexture.active = renderTexture;
+                    pixels.ReadPixels(new Rect(0, 0, 1600, 1000), 0, 0);
+                    pixels.Apply();
+                    File.WriteAllBytes(Path.Combine(directory, name + ".png"), pixels.EncodeToPNG());
+                }
+                finally
+                {
+                    RenderTexture.active = previous;
+                    UnityEngine.Object.DestroyImmediate(cameraObject);
+                    UnityEngine.Object.DestroyImmediate(pixels);
+                    UnityEngine.Object.DestroyImmediate(renderTexture);
+                }
+            }
+            Render("unity-main-interior", new Vector3(main.x, 1.65f, -0.05f), new Vector3(screen.x, 1.5f, screen.z), 70f);
+            Render("unity-fireplace", fireplace + new Vector3(-2.7f, 1.18f, 0.3f), fireplace + new Vector3(0, 0.53f, 0), 54f);
+            var salon = FindDeepChild(root, "SUB_FLOOR").GetComponent<Renderer>().bounds;
+            var salonScreen = FindDeepChild(root, "SCREEN_SUB_SURFACE").position;
+            Render("unity-alice-interior", new Vector3(salon.min.x + 0.65f, 1.65f, salon.center.z), new Vector3(salonScreen.x, 1.65f, salonScreen.z), 76f);
+            Render("unity-alice-rear", new Vector3(salon.max.x - 0.8f, 1.65f, salon.center.z), new Vector3(salon.min.x, 1.65f, salon.center.z), 76f);
+            var arrival = FindDeepChild(root, "RESPAWN_SAFE_CORRIDOR").position;
+            var entrance = FindDeepChild(root, "ARCH_MAIN_CORRIDOR_Lintel").position;
+            Render("unity-corridor", arrival + new Vector3(1.8f, 1.6f, 0), new Vector3(entrance.x, 1.6f, entrance.z), 75f);
+            fire.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            Debug.Log("Castle of Ideas Unity interior previews rendered.");
+        }
+
         [MenuItem("Castle of Ideas/Build World Scene")]
         public static void BuildWorldScene()
         {
@@ -111,9 +172,15 @@ namespace CastleOfIdeas.Editor
             {
                 throw new InvalidOperationException("Unity could not instantiate the generated model.");
             }
+            // Imported model prefab children cannot be reparented. Unpack the
+            // scene instance before grouping movable chair meshes; mesh assets
+            // still refer to the editable, reproducible source FBX.
+            PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             model.name = "EditableWorldModel";
             model.transform.SetParent(worldRoot.transform, false);
 
+            ConfigurePhotoMaterials(model);
+            ConfigureLiteratureMaterials(model);
             ConfigureGeometry(model);
             ConfigureScreen(model, "SCREEN_MAIN_SURFACE", "MainScreen", ProgramRenderTextureName);
             ConfigureScreen(model, "SCREEN_SUB_SURFACE", "SubScreen", ProgramRenderTextureName);
@@ -124,6 +191,7 @@ namespace CastleOfIdeas.Editor
                 "PortalBridge.renderTexture"
             );
             CreateUnityLights(worldRoot.transform);
+            CreateFireplaceEffect(worldRoot.transform);
             CreateSetupNotes(worldRoot.transform);
 
             EnsureAssetFolder("Assets/CastleOfIdeas/Scenes");
@@ -191,14 +259,9 @@ namespace CastleOfIdeas.Editor
                 throw new InvalidOperationException("PROGRAM_FEED_PLAYER was not found in the model.");
             }
             ConfigureProgramAudio(programPlayer);
-            ConfigureProgramControlPanel(
-                worldRoot.transform,
-                interactableType,
-                actionType,
-                operationType
-            );
 
             var seatCount = 0;
+            ConfiguredChairControllers.Clear();
             foreach (var transform in worldRoot.GetComponentsInChildren<Transform>(true))
             {
                 if (!transform.name.Contains("CHAIR") || transform.name.EndsWith("Seat") || transform.name.EndsWith("Back") || transform.name.EndsWith("Pedestal"))
@@ -219,6 +282,7 @@ namespace CastleOfIdeas.Editor
                     actionType,
                     operationType
                 );
+                ConfigureChairMotion(interactable);
                 seatCount++;
             }
 
@@ -368,23 +432,9 @@ namespace CastleOfIdeas.Editor
                 }
             }
 
-            var controlPanel = FindDeepChild(worldRoot.transform, "PROGRAM_MEDIA_CONTROL_UI");
-            var reloadButton = controlPanel == null
-                ? null
-                : FindDeepChild(controlPanel, "ReloadStreamButton");
-            var volumeButtons = controlPanel == null
-                ? Array.Empty<Transform>()
-                : new[] { -12, -6, 0, 6, 12 }
-                    .Select(db => FindDeepChild(controlPanel, VolumeButtonName(db)))
-                    .ToArray();
-            if (
-                controlPanel == null
-                || reloadButton?.GetComponent(interactableType) == null
-                || volumeButtons.Any(button => button?.GetComponent(interactableType) == null)
-            )
-            {
-                errors.Add("The native reload/dB media control panel is incomplete.");
-            }
+            if (FindDeepChild(worldRoot.transform, "PROGRAM_MEDIA_CONTROL_UI") != null
+                || FindDeepChild(worldRoot.transform, "PROGRAM_CONTROL_PANEL") != null)
+                errors.Add("The RC world must not contain the removed media control panel.");
 
             var portalSurface = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_SURFACE");
             var portalPlayerMarker = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_PLAYER");
@@ -407,14 +457,72 @@ namespace CastleOfIdeas.Editor
                     "PORTAL_BRIDGE_PLAYER must remain a scaffold until its low-latency transport is validated."
                 );
             }
-            var subSurface = FindDeepChild(worldRoot.transform, "SCREEN_SUB_SURFACE");
+            var mainSurface = FindDeepChild(worldRoot.transform, "SCREEN_MAIN_SURFACE");
+            foreach (var room in new[] { "MAIN", "SUB", "CORRIDOR", "ELEVATOR" })
+            {
+                var floor = FindDeepChild(worldRoot.transform, room + "_FLOOR")?.GetComponent<Renderer>();
+                var ceiling = FindDeepChild(worldRoot.transform, room + "_CEILING");
+                var ceilingRenderer = ceiling?.GetComponent<Renderer>();
+                if (floor == null || ceilingRenderer == null || ceiling.GetComponent<BoxCollider>() == null
+                    || Mathf.Abs(ceilingRenderer.bounds.min.y - floor.bounds.max.y - 3f) > 0.03f)
+                    errors.Add($"{room} must have a solid ceiling at 3 metres above its floor.");
+            }
+            var fire = FindDeepChild(worldRoot.transform, "FIREPLACE_FIRE")?.GetComponent<ParticleSystem>();
+            if (fire == null || !fire.main.playOnAwake || fire.GetComponent<Renderer>().sharedMaterial?.shader.name != "CastleOfIdeas/AnalyticFlame")
+                errors.Add("The fireplace must contain native animated fire particles.");
+            var photographicMaterials = worldRoot.GetComponentsInChildren<Renderer>(true)
+                .SelectMany(renderer => renderer.sharedMaterials)
+                .Where(material => material != null && AssetDatabase.GetAssetPath(material).Contains("/Photo-"))
+                .Distinct().ToArray();
+            if (photographicMaterials.Length != 14 || photographicMaterials.Any(material => material.mainTexture == null || material.GetTexture("_BumpMap") == null))
+                errors.Add("All fourteen photograph-derived materials must have color and normal textures.");
+            if (FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_STAND_POST_A") != null)
+                errors.Add("The enlarged portal must be wall mounted without a stand.");
+            var hearth = FindDeepChild(worldRoot.transform, "FIREPLACE_HEARTH")?.GetComponent<Renderer>();
+            var corridorFloor = FindDeepChild(worldRoot.transform, "CORRIDOR_FLOOR")?.GetComponent<Renderer>();
+            if (hearth == null || corridorFloor == null || Mathf.Abs(hearth.bounds.size.z - 1.6f) > 0.03f
+                || Mathf.Abs(corridorFloor.bounds.min.z - hearth.bounds.max.z - 1.4f) > 0.03f)
+                errors.Add("The 1.6-m fireplace must begin 1.4 m beyond the corridor edge toward the screen.");
+            var literature = worldRoot.GetComponentsInChildren<Renderer>(true)
+                .SelectMany(renderer => renderer.sharedMaterials)
+                .Where(material => material != null && AssetDatabase.GetAssetPath(material).Contains("/Literature-"))
+                .Distinct().ToArray();
+            if (literature.Length != 4 || literature.Any(material => material.mainTexture == null))
+                errors.Add("Alice's continuous four-wall panorama is incomplete.");
+            foreach (var removed in new[] { "SUB_DADO_NORTH", "SUB_SCREEN_CHAIR_01", "SUB_READING_CABINET" })
+                if (FindDeepChild(worldRoot.transform, removed) != null)
+                    errors.Add($"Removed Alice furnishing remains: {removed}");
+            if (hearth != null)
+                foreach (var pier in worldRoot.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith("MAIN_PILASTER_")))
+                    if (pier.bounds.Intersects(hearth.bounds))
+                        errors.Add($"Measured pier intersects the fireplace: {pier.name}");
+            var desks = worldRoot.GetComponentsInChildren<Renderer>(true)
+                .Where(r => r.name.StartsWith("MAIN_TABLE_") && r.name.EndsWith("_Top")).ToArray();
+            if (desks.Length != 6 || desks.Any(r => Mathf.Abs(r.bounds.size.x - 1.8f) > 0.03f))
+                errors.Add("The lecture room must contain six 1.8-m desks in two columns and three rows.");
+            foreach (var desk in desks)
+            {
+                var chairs = worldRoot.GetComponentsInChildren<Renderer>(true)
+                    .Where(r => r.name.StartsWith("MAIN_CHAIR_") && r.name.EndsWith("_SeatFrame")
+                        && Mathf.Abs((r.transform.parent.name == "CHAIR_VISUAL" ? r.transform.parent.parent.position.z : r.transform.parent.position.z) - desk.bounds.center.z - 0.72f) < 0.03f
+                        && Mathf.Abs(r.bounds.center.x - desk.bounds.center.x) < 0.9f).OrderBy(r => r.bounds.center.x).ToArray();
+                if (chairs.Length != 2 || Mathf.Abs(chairs[0].bounds.min.x - desk.bounds.min.x - 0.15f) > 0.03f
+                    || Mathf.Abs(desk.bounds.max.x - chairs[1].bounds.max.x - 0.15f) > 0.03f)
+                    errors.Add($"Chair outer edges must sit 15 cm inside desk ends: {desk.name}");
+            }
+            if (mainSurface != null && primarySpawn != null
+                && Vector3.Dot(mainSurface.position - primarySpawn.position, primarySpawn.right) <= 0f)
+            {
+                errors.Add($"The main lecture hall must be on the right when leaving the elevator (hall={mainSurface.position}, spawn={primarySpawn.position}, right={primarySpawn.right}).");
+            }
             if (
                 portalSurface != null
-                && subSurface != null
-                && portalSurface.position.x <= subSurface.position.x
+                && mainSurface != null
+                // FBX maps Blender (x, y, z) to Unity (-x, z, -y).
+                && portalSurface.position.x >= mainSurface.position.x
             )
             {
-                errors.Add("The portal must remain on the rear wall opposite the salon screen.");
+                errors.Add("The portal must remain on the far east wall of the main lecture hall.");
             }
 
             var seatMarkers = worldRoot
@@ -452,8 +560,8 @@ namespace CastleOfIdeas.Editor
 
             Debug.Log(
                 $"Castle of Ideas validation passed: 1 EV spawn, 1 reference camera, " +
-                $"1 shared program video player, build-time URL/native dB controls, 2 linked lecture screens, " +
-                $"1 rear-wall portal scaffold, " +
+                $"1 shared program video player, build-time fixed URL, 2 linked lecture screens, " +
+                $"1 mirrored far-wall portal scaffold, " +
                 $"and {configuredSeatCount} seats."
             );
         }
@@ -551,7 +659,8 @@ namespace CastleOfIdeas.Editor
                         | StaticEditorFlags.ReflectionProbeStatic
                 );
 
-                if (target.GetComponent<MeshFilter>() == null || target.GetComponent<Collider>() != null)
+                if (target.name == "SUB_FLOOR_PLANKS" || target.name.StartsWith("ALICE_WALLPAPER_")
+                    || target.GetComponent<MeshFilter>() == null || target.GetComponent<Collider>() != null)
                 {
                     continue;
                 }
@@ -559,6 +668,9 @@ namespace CastleOfIdeas.Editor
                 var name = target.name.ToUpperInvariant();
                 if (
                     name.Contains("_FLOOR")
+                    || name.Contains("_CEILING")
+                    || name.Contains("_BEAM")
+                    || name.Contains("PROJECTING_PIER")
                     || name.Contains("_WALL")
                     || name.Contains("_TABLE")
                     || name.Contains("_CHAIR")
@@ -566,11 +678,182 @@ namespace CastleOfIdeas.Editor
                     || name.Contains("_CABINET")
                     || name.Contains("_ARCH_")
                     || name.Contains("ELEVATOR_DOOR")
+                    || name.StartsWith("FIREPLACE_")
                 )
                 {
                     target.AddComponent<BoxCollider>();
                 }
             }
+        }
+
+        private static void ConfigurePhotoMaterials(GameObject model)
+        {
+            const string textureRoot = "Assets/CastleOfIdeas/Textures/PhotoDerived";
+            var definitions = new Dictionary<string, string>
+            {
+                { "MAT_MAIN_WALL_PLASTER", "main-stone" },
+                { "MAT_MAIN_FLOOR_STONE", "floor-stone" },
+                { "MAT_MAIN_CEILING_STONE", "ceiling-stone" },
+                { "MAT_CORRIDOR_WALL", "corridor-blue-stone" },
+                { "MAT_MAIN_WOOD", "desk-wood" },
+                { "MAT_CHAIR_OAK", "chair-oak" },
+                { "MAT_MAIN_UPHOLSTERY", "black-leather" },
+                { "MAT_DESK_CARVING", "desk-carving" },
+                { "MAT_FIREPLACE_STONE", "fireplace-stone" },
+                { "MAT_FIREPLACE_RELIEF", "fireplace-relief" },
+                { "MAT_SUB_FLOOR_MARBLE", "alice-white-planks" },
+                { "MAT_SUB_TRIM_WHITE", "alice-painted-wood" },
+                { "MAT_SUB_CLOTH", "alice-red-cloth" },
+                { "MAT_CHAIR_BACK_OAK", "chair-back-oak" }
+            };
+            EnsureAssetFolder(GeneratedPath);
+            var materials = new Dictionary<string, Material>();
+            foreach (var definition in definitions)
+            {
+                var colorPath = $"{textureRoot}/{definition.Value}.png";
+                var normalPath = $"{textureRoot}/{definition.Value}-normal.png";
+                foreach (var path in new[] { colorPath, normalPath })
+                {
+                    var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                    if (importer == null)
+                        throw new InvalidOperationException($"Photo texture is missing: {path}");
+                    var normal = path == normalPath;
+                    importer.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+                    importer.sRGBTexture = !normal;
+                    importer.wrapMode = TextureWrapMode.Repeat;
+                    importer.maxTextureSize = 1024;
+                    importer.mipmapEnabled = true;
+                    importer.streamingMipmaps = true;
+                    importer.SaveAndReimport();
+                }
+                var materialPath = $"{GeneratedPath}/Photo-{definition.Value}.mat";
+                var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                if (material == null)
+                {
+                    material = new Material(Shader.Find("Standard"));
+                    AssetDatabase.CreateAsset(material, materialPath);
+                }
+                material.name = definition.Key;
+                material.color = Color.white;
+                material.mainTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(colorPath);
+                material.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath));
+                material.SetFloat("_BumpScale", 0.35f);
+                material.SetFloat("_Glossiness", definition.Value == "black-leather" ? 0.38f : 0.16f);
+                material.EnableKeyword("_NORMALMAP");
+                EditorUtility.SetDirty(material);
+                materials[definition.Key] = material;
+            }
+            foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.sharedMaterials = renderer.sharedMaterials.Select(material =>
+                    material != null && materials.TryGetValue(material.name, out var replacement)
+                        ? replacement : material).ToArray();
+            }
+        }
+
+        private static void CreateFireplaceEffect(Transform root)
+        {
+            var anchor = FindDeepChild(root, "FIREPLACE_FLAME_ANCHOR");
+            if (anchor == null)
+                throw new InvalidOperationException("Fireplace flame anchor is missing.");
+            var effect = FindOrCreate(root, "FIREPLACE_FIRE");
+            effect.transform.position = anchor.position;
+            effect.transform.rotation = Quaternion.identity;
+            var shader = Shader.Find("CastleOfIdeas/AnalyticFlame");
+            if (shader == null)
+                throw new InvalidOperationException("Analytic flame shader is missing.");
+            var materialPath = $"{GeneratedPath}/FireplaceFlame.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            material.shader = shader;
+            EditorUtility.SetDirty(material);
+            var particles = effect.GetComponent<ParticleSystem>();
+            if (!particles)
+                particles = effect.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.loop = true;
+            main.playOnAwake = true;
+            main.prewarm = true;
+            main.duration = 2f;
+            main.maxParticles = 48;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 1.1f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.14f, 0.30f);
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            var emission = particles.emission;
+            emission.rateOverTime = 30f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(0.70f, 0.02f, 0.12f);
+            var velocity = particles.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.x = new ParticleSystem.MinMaxCurve(-0.06f, 0.06f);
+            velocity.y = new ParticleSystem.MinMaxCurve(0.25f, 0.50f);
+            velocity.z = new ParticleSystem.MinMaxCurve(-0.02f, 0.02f);
+            var size = particles.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0, 0.5f), new Keyframe(0.25f, 1), new Keyframe(1, 0)));
+            var renderer = particles.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            var glow = FindOrCreate(root, "FIREPLACE_LIGHT");
+            glow.transform.position = anchor.position + new Vector3(0, 0.30f, 0);
+            var light = glow.GetComponent<Light>();
+            if (!light)
+                light = glow.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1, 0.30f, 0.035f);
+            light.intensity = 1.1f;
+            light.range = 3.0f;
+            light.shadows = LightShadows.None;
+        }
+
+        private static void ConfigureLiteratureMaterials(GameObject model)
+        {
+            const string textureRoot = "Assets/CastleOfIdeas/Textures/AliceLiterature";
+            var definitions = new Dictionary<string, string>
+            {
+                { "MAT_ALICE_WALL_N", "wallpaper-north" },
+                { "MAT_ALICE_WALL_E", "wallpaper-east" },
+                { "MAT_ALICE_WALL_S", "wallpaper-south" },
+                { "MAT_ALICE_WALL_W", "wallpaper-west" }
+            };
+            var replacements = new Dictionary<string, Material>();
+            foreach (var definition in definitions)
+            {
+                var texturePath = $"{textureRoot}/{definition.Value}.png";
+                var importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+                if (importer == null)
+                    throw new InvalidOperationException($"Literature texture is missing: {texturePath}");
+                importer.maxTextureSize = 8192;
+                importer.npotScale = TextureImporterNPOTScale.None;
+                importer.mipmapEnabled = true;
+                importer.streamingMipmaps = true;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.SaveAndReimport();
+                var materialPath = $"{GeneratedPath}/Literature-{definition.Value}.mat";
+                var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                if (material == null)
+                {
+                    material = new Material(Shader.Find("Standard"));
+                    AssetDatabase.CreateAsset(material, materialPath);
+                }
+                material.name = definition.Key;
+                material.color = Color.white;
+                material.mainTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+                material.SetFloat("_Glossiness", 0.02f);
+                EditorUtility.SetDirty(material);
+                replacements[definition.Key] = material;
+            }
+            foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
+                renderer.sharedMaterials = renderer.sharedMaterials.Select(material => material != null && replacements.TryGetValue(material.name, out var replacement) ? replacement : material).ToArray();
         }
 
         private static void ConfigureScreen(
@@ -826,200 +1109,6 @@ namespace CastleOfIdeas.Editor
             return db > 0 ? $"Program +{db} dB" : $"Program {db} dB";
         }
 
-        private static string VolumeButtonName(int db)
-        {
-            var sign = db > 0 ? "Plus" : db < 0 ? "Minus" : string.Empty;
-            return $"Volume{sign}{Math.Abs(db)}DbButton";
-        }
-
-        private static void ConfigureProgramControlPanel(
-            Transform worldRoot,
-            Type interactableType,
-            Type actionType,
-            Type operationType
-        )
-        {
-            var marker = FindDeepChild(worldRoot, "PROGRAM_CONTROL_PANEL");
-            if (marker == null)
-            {
-                throw new InvalidOperationException("PROGRAM_CONTROL_PANEL marker was not found.");
-            }
-            var existing = FindDeepChild(marker, "PROGRAM_MEDIA_CONTROL_UI");
-            if (existing != null)
-            {
-                UnityEngine.Object.DestroyImmediate(existing.gameObject);
-            }
-
-            var root = new GameObject(
-                "PROGRAM_MEDIA_CONTROL_UI",
-                typeof(RectTransform),
-                typeof(Canvas),
-                typeof(CanvasScaler),
-                typeof(GraphicRaycaster)
-            );
-            root.transform.SetParent(marker, false);
-            var rootRect = (RectTransform)root.transform;
-            rootRect.sizeDelta = new Vector2(920f, 390f);
-            rootRect.localScale = Vector3.one * 0.0015f;
-            rootRect.localPosition = Vector3.zero;
-            rootRect.localRotation = Quaternion.Euler(90f, 0f, 0f);
-
-            var canvas = root.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.sortingOrder = 20;
-            root.GetComponent<CanvasScaler>().dynamicPixelsPerUnit = 10f;
-            var wrapperType = FindComponentType("CVRCanvasWrapper");
-            if (wrapperType != null)
-            {
-                var wrapper = AddComponentIfMissing(root, wrapperType);
-                TrySetField(wrapper, "interactionDistance", 4f);
-            }
-
-            var panel = root.AddComponent<Image>();
-            panel.color = new Color(0.035f, 0.045f, 0.07f, 0.96f);
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            CreateUiText("Title", rootRect, new Vector2(0, 150), new Vector2(850, 54), "PROGRAM FEED CONTROL", 34, font, TextAnchor.MiddleLeft, Color.white);
-            CreateUiText("ReceiverStatus", rootRect, new Vector2(0, 102), new Vector2(850, 40), "受信URL: ビルド時設定済み（非表示）", 22, font, TextAnchor.MiddleLeft, new Color(0.63f, 0.8f, 1f));
-            CreateUiText("ReceiverNote", rootRect, new Vector2(0, 66), new Vector2(850, 34), "映像が始まらない場合は再読込してください", 19, font, TextAnchor.MiddleLeft, new Color(0.78f, 0.84f, 0.9f));
-
-            var reloadButton = CreateUiButton("ReloadStreamButton", rootRect, new Vector2(0, 12), new Vector2(300, 56), "配信を再読込", font);
-            ConfigureNativeButton(
-                reloadButton.gameObject,
-                "Reload program feed",
-                interactableType,
-                actionType,
-                operationType,
-                "GlobalInstanceOwnerOnly",
-                null
-            );
-
-            CreateUiText("VolumeLabelTitle", rootRect, new Vector2(-345, -58), new Vector2(180, 36), "手元の音量", 22, font, TextAnchor.MiddleLeft, Color.white);
-            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath);
-            var buttonX = new[] { -244f, -122f, 0f, 122f, 244f };
-            var presets = new[] { -12, -6, 0, 6, 12 };
-            for (var index = 0; index < presets.Length; index++)
-            {
-                var db = presets[index];
-                var label = db > 0 ? $"+{db} dB" : $"{db} dB";
-                var button = CreateUiButton(
-                    VolumeButtonName(db),
-                    rootRect,
-                    new Vector2(buttonX[index], -112),
-                    new Vector2(108, 52),
-                    label,
-                    font
-                );
-                var snapshot = mixer?.FindSnapshot(VolumeSnapshotName(db));
-                if (snapshot == null)
-                {
-                    throw new InvalidOperationException(
-                        $"Program AudioMixer snapshot {VolumeSnapshotName(db)} was not found."
-                    );
-                }
-                ConfigureNativeButton(
-                    button.gameObject,
-                    $"Set program volume to {label}",
-                    interactableType,
-                    actionType,
-                    operationType,
-                    "LocalNotNetworked",
-                    operation =>
-                    {
-                        var customEvent = GetFieldValue(operation, "customEvent") as UnityEvent;
-                        UnityEventTools.AddFloatPersistentListener(
-                            customEvent,
-                            snapshot.TransitionTo,
-                            0f
-                        );
-                    }
-                );
-            }
-        }
-
-        private static void ConfigureNativeButton(
-            GameObject button,
-            string tooltip,
-            Type interactableType,
-            Type actionType,
-            Type operationType,
-            string executionType,
-            Action<object> configureOperation
-        )
-        {
-            var interactable = AddComponentIfMissing(button, interactableType);
-            TrySetField(interactable, "version", 1);
-            TrySetField(interactable, "tooltip", tooltip);
-            var actions = CreateListForField(interactable, "actions");
-            actions.Clear();
-            var action = Activator.CreateInstance(actionType);
-            TrySetEnumField(action, "actionType", "OnUnityUIPointerUp");
-            TrySetEnumField(action, "execType", executionType);
-            var operations = CreateListForField(action, "operations");
-            var operation = Activator.CreateInstance(operationType);
-            if (operation == null)
-            {
-                throw new InvalidOperationException("Could not create a CCK action operation.");
-            }
-            TrySetEnumField(operation, "type", "MethodCall");
-            TrySetField(operation, "customEvent", new UnityEvent());
-            configureOperation?.Invoke(operation);
-            operations.Add(operation);
-            TrySetField(action, "operations", operations);
-            actions.Add(action);
-            TrySetField(interactable, "actions", actions);
-            EditorUtility.SetDirty(interactable);
-        }
-
-        private static Text CreateUiText(
-            string name,
-            RectTransform parent,
-            Vector2 position,
-            Vector2 size,
-            string value,
-            int fontSize,
-            Font font,
-            TextAnchor alignment,
-            Color color
-        )
-        {
-            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            target.transform.SetParent(parent, false);
-            var rect = (RectTransform)target.transform;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            var text = target.GetComponent<Text>();
-            text.text = value;
-            text.font = font;
-            text.fontSize = fontSize;
-            text.alignment = alignment;
-            text.color = color;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
-            return text;
-        }
-
-        private static Button CreateUiButton(
-            string name,
-            RectTransform parent,
-            Vector2 position,
-            Vector2 size,
-            string label,
-            Font font
-        )
-        {
-            var target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            target.transform.SetParent(parent, false);
-            var rect = (RectTransform)target.transform;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            var image = target.GetComponent<Image>();
-            image.color = new Color(0.16f, 0.42f, 0.64f, 1f);
-            var button = target.GetComponent<Button>();
-            button.targetGraphic = image;
-            CreateUiText("Label", rect, Vector2.zero, size, label, 23, font, TextAnchor.MiddleCenter, Color.white);
-            return button;
-        }
-
         private static WorldIdentity CaptureWorldIdentity()
         {
             var worldRoot = GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
@@ -1088,7 +1177,82 @@ namespace CastleOfIdeas.Editor
                 var collider = interactable.gameObject.AddComponent<BoxCollider>();
                 collider.center = new Vector3(0f, 0.6f, -0.05f);
                 collider.size = new Vector3(0.7f, 1.2f, 0.8f);
+                collider.isTrigger = true;
             }
+            EditorUtility.SetDirty(interactable);
+        }
+
+        private static void ConfigureChairMotion(Component interactable)
+        {
+            var chair = interactable.transform;
+            foreach (var node in chair.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(node.gameObject, 0);
+            var visual = new GameObject("CHAIR_VISUAL").transform;
+            visual.SetParent(chair, false);
+            foreach (var child in chair.Cast<Transform>().ToArray())
+                if (child != visual && child.GetComponent<Renderer>() != null)
+                    child.SetParent(visual, true);
+            if (visual.GetComponentsInChildren<Renderer>().Length == 0)
+                throw new InvalidOperationException("No movable chair meshes were grouped: " + chair.name);
+            var lecture = chair.name.StartsWith("MAIN_");
+            var amount = lecture ? 0.45f : 0.48f;
+            var worldPush = new Vector3(0, 0, chair.name.EndsWith("_N") ? amount : -amount);
+            var tucked = chair.InverseTransformVector(worldPush);
+            visual.localPosition = tucked;
+            var group = lecture ? "Lecture" : "Salon";
+            var controllerPath = $"{GeneratedPath}/Chair-{group}.controller";
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+            if (controller == null)
+                controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+            var machine = controller.layers[0].stateMachine;
+            if (ConfiguredChairControllers.Add(group))
+            {
+              var layers = controller.layers;
+              layers[0].defaultWeight = 1f;
+              controller.layers = layers;
+              foreach (var old in machine.states)
+              {
+                  machine.RemoveState(old.state);
+                  UnityEngine.Object.DestroyImmediate(old.state, true);
+              }
+              foreach (var stateName in new[] { "Tucked", "Pull", "Tuck" })
+              {
+                var path = $"{GeneratedPath}/Chair-{group}-{stateName}.anim";
+                var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                if (clip == null)
+                {
+                    clip = new AnimationClip();
+                    AssetDatabase.CreateAsset(clip, path);
+                }
+                clip.ClearCurves();
+                clip.name = $"Chair-{group}-{stateName}";
+                clip.frameRate = 60;
+                var start = stateName == "Tuck" ? Vector3.zero : tucked;
+                var end = stateName == "Pull" ? Vector3.zero : tucked;
+                foreach (var axis in new[] { 0, 1, 2 })
+                    AnimationUtility.SetEditorCurve(clip,
+                        EditorCurveBinding.FloatCurve("CHAIR_VISUAL", typeof(Transform), "m_LocalPosition." + "xyz"[axis]),
+                        AnimationCurve.EaseInOut(0, start[axis], 0.35f, end[axis]));
+                var settings = AnimationUtility.GetAnimationClipSettings(clip);
+                settings.loopTime = false;
+                AnimationUtility.SetAnimationClipSettings(clip, settings);
+                var state = machine.AddState(stateName);
+                state.motion = clip;
+                if (stateName == "Tucked") machine.defaultState = state;
+                EditorUtility.SetDirty(clip);
+              }
+            }
+            var animator = chair.gameObject.AddComponent<Animator>();
+            animator.runtimeAnimatorController = controller;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            animator.applyRootMotion = false;
+            var enter = new UnityEvent();
+            var exit = new UnityEvent();
+            UnityEventTools.AddStringPersistentListener(enter, animator.Play, "Pull");
+            UnityEventTools.AddStringPersistentListener(exit, animator.Play, "Tuck");
+            TrySetField(interactable, "onEnterSeat", enter);
+            TrySetField(interactable, "onExitSeat", exit);
+            EditorUtility.SetDirty(controller);
             EditorUtility.SetDirty(interactable);
         }
 
@@ -1318,13 +1482,23 @@ namespace CastleOfIdeas.Editor
         private static void CreateUnityLights(Transform root)
         {
             var lighting = FindOrCreate(root, "UNITY_LIGHTING");
+            Vector3 Above(string markerName, float height)
+            {
+                var marker = FindDeepChild(root, markerName);
+                if (marker == null)
+                {
+                    throw new InvalidOperationException($"Lighting anchor {markerName} is missing.");
+                }
+                var position = root.InverseTransformPoint(marker.position);
+                position.y = height;
+                return position;
+            }
             var lights = new List<(string Name, Vector3 Position, Color Color, float Intensity, float Range)>
             {
-                // The FBX importer maps Blender (x, y, z) to Unity (-x, z, y).
-                ("Main Warm Fill", new Vector3(0f, 4.2f, 3.7f), new Color(1f, 0.55f, 0.28f), 2.2f, 18f),
-                ("Sub Cool Fill", new Vector3(-16.5f, 4.2f, 9.2f), new Color(0.75f, 0.88f, 1f), 2.6f, 16f),
-                ("Corridor Fill", new Vector3(-17.5f, 3.2f, 2.7f), new Color(0.9f, 0.72f, 0.58f), 1.2f, 10f),
-                ("Elevator Cabin", new Vector3(-17.5f, 2.85f, 0f), new Color(0.68f, 0.84f, 1f), 1.8f, 5f)
+                ("Main Warm Fill", Above("MAIN_FLOOR", 2.65f), new Color(1f, 0.78f, 0.55f), 1.6f, 12f),
+                ("Sub Soft Warm Fill", Above("SUB_FLOOR", 2.65f), new Color(1f, 0.95f, 0.87f), 1.8f, 12f),
+                ("Corridor Fill", Above("CORRIDOR_FLOOR", 2.65f), new Color(0.65f, 0.79f, 1f), 1.1f, 10f),
+                ("Elevator Cabin", Above("ELEVATOR_FLOOR", 2.75f), new Color(0.68f, 0.84f, 1f), 1.3f, 5f)
             };
             foreach (var definition in lights)
             {

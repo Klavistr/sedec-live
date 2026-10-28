@@ -14,6 +14,10 @@ CCK とその依存物はライセンスおよび更新手順の都合で同梱�
 
 Windows Previewの問題を調べる場合は `launch-castle-of-ideas-debug.cmd` から起動します。別のPowerShell窓がChilloutVRの `Player.log` を追跡し、Video Player、HLSと `[CastleOfIdeas]` の行を表示します。HTTPS URLはログ表示時に伏せ字にします。
 
-メイン／サブの講演スクリーンは `ProgramFeed.renderTexture` を共有します。音声は2D Audio Sourceから `ProgramAudio.mixer` へ送り、Luaに依存しないローカルボタンで −12、−6、0、+6、+12 dBを選べます。`PORTAL_BRIDGE_PLAYER` はサブ会場後方壁にある低遅延方式の検証用マーカーで、初期HLS構成ではVideo Playerを付けません。
+メイン／サブの講演スクリーンは `ProgramFeed.renderTexture` を共有します。音声は2D Audio Sourceから `ProgramAudio.mixer` へ送り、初期音量は0 dBです。RCではワールド内の配信コンパネを撤去しています。`PORTAL_BRIDGE_PLAYER` はメイン講義室へ入った正面の奥壁にある、70型BIG PADの縦横2倍の低遅延方式検証用マーカーです。初期HLS構成ではVideo Playerを付けません。
 
 初回セットアップ後は、生成された `.meta`、シーン、Material、RenderTexture をコミット対象にします。`Library/`、`Temp/`、`Logs/`、ユーザー固有設定はコミットしません。
+
+`Build Complete CCK World` は写真素材のStandard材質（色＋簡易法線）14種と、アリス室の連続壁紙4面を割り当て、3 m天井の当たり判定と暖炉の標準Particle Systemを構成します。炎は `AnalyticFlame.shader` の数式で揺らぎ、ランタイムのカスタムC#スクリプトやビットマップ素材は使いません。`Validate World Scene` で天井高、材質、暖炉と柱の衝突、幅1.8 mの机6台と椅子の15 cm内寄せ、炎の構成も検証します。`Render Interior Previews` は講義室・暖炉・アリス室・廊下の画像を `../preview/` に出力します。
+
+室内プレビューは編集モードで撮影します。シーンの表示確認用で、配信用URLの注入や再生は行いません。

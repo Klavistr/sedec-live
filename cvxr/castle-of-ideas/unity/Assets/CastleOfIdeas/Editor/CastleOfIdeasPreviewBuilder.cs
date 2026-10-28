@@ -291,11 +291,13 @@ ChilloutVR itself rather than this ZIP package.
 This private preview contains a build-time HLS receiver URL. The URL is not printed
 in this README or in build-info.json, but it can be extracted from the world bundle;
 do not redistribute this ZIP. The main and sub lecture screens share one program
-player. Use Reload if the HLS feed was not ready when the world opened. Per-user
-volume presets are available from -12 dB through +12 dB.
+player and start it automatically. Start the broadcast before opening the world.
+The Early Access build has no in-world media control panel. Reopen the world if
+the feed was unavailable at startup. Initial program volume is 0 dB.
 
-The purple portal is on the rear wall opposite the white salon screen. It remains a
-visual and integration scaffold; its future low-latency bridge is not connected yet.
+The 70-inch-scale portal is on the far wall of the main lecture hall, directly
+opposite its corridor entrance. It remains a visual and integration scaffold; its
+future low-latency bridge is not connected yet.
 ";
         }
 
@@ -311,7 +313,9 @@ visual and integration scaffold; its future low-latency bridge is not connected 
   ""linkedLectureScreens"": 2,
   ""receiverUrl"": ""embedded-redacted"",
   ""runtimeReceiverUrlInput"": false,
-  ""volumePresetsDb"": [-12, -6, 0, 6, 12],
+  ""mediaControlPanel"": false,
+  ""defaultVolumeDb"": 0,
+  ""releaseStage"": ""early-access-rc"",
   ""externalDiagnostics"": true,
   ""portalStatus"": ""scaffold-only"",
   ""builtAtUtc"": ""{DateTime.UtcNow:O}""
