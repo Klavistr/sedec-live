@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "coordinates": "normalized XY after EXIF orientation; quad order TL, TR, BR, BL",
+  "recipes": [
+    {"name":"main-stone", "source":"IMG_7175.HEIC", "rect":[0.05,0.39,0.12,0.47], "size":[1024,512], "assembly":"brick", "brightness":0.88, "normalStrength":1.2},
+    {"name":"floor-stone", "source":"IMG_7173.HEIC", "rect":[0.12,0.54,0.36,0.80], "size":[1024,1024], "assembly":"tiles", "normalStrength":0.8},
+    {"name":"ceiling-stone", "source":"IMG_2543.HEIC", "rect":[0.60,0.005,0.73,0.06], "size":[512,512], "assembly":"mirror", "brightness":0.65, "normalStrength":0.5},
+    {"name":"corridor-blue-stone", "source":"IMG_7178.HEIC", "rect":[0.291,0.015,0.475,0.245], "size":[1024,512], "assembly":"brick", "normalStrength":1.4},
+    {"name":"chair-oak", "source":"IMG_7169.HEIC", "rect":[0.33,0.095,0.62,0.13], "size":[512,512], "assembly":"mirror", "normalStrength":0.35},
+    {"name":"black-leather", "source":"IMG_7169.HEIC", "rect":[0.36,0.555,0.45,0.59], "size":[512,512], "assembly":"mirror", "brightness":0.65, "normalStrength":0.3},
+    {"name":"desk-wood", "source":"IMG_7171.HEIC", "quad":[[0.65,0.27],[0.86,0.245],[0.86,0.50],[0.65,0.48]], "size":[512,1024], "assembly":"mirror", "normalStrength":0.4},
+    {"name":"desk-carving", "source":"IMG_7171.HEIC", "quad":[[0.012,0.075],[0.325,0.105],[0.32,0.262],[0.012,0.23]], "size":[1024,512], "assembly":"single", "normalStrength":1.0},
+    {"name":"fireplace-stone", "source":"IMG_7175.HEIC", "rect":[0.36,0.115,0.66,0.16], "size":[512,512], "assembly":"mirror", "normalStrength":1.0},
+    {"name":"fireplace-relief", "source":"IMG_7175.HEIC", "quad":[[0.30,0.35],[0.405,0.325],[0.43,0.775],[0.335,0.818]], "size":[256,1024], "assembly":"single", "normalStrength":1.3},
+    {"name":"alice-white-planks", "source":"IMG_2375.HEIC", "quad":[[0.54636,0.90165],[0.46221,0.97315],[0.50091,0.98665],[0.58506,0.91515]], "size":[1152,192], "assembly":"single", "rotateCounterclockwiseDegrees":4.0, "inkPreservingWhitePaint":{"threshold":115,"white":[241,239,231],"black":[30,29,27]}, "normalStrength":0.25},
+    {"name":"alice-painted-wood", "source":"IMG_2375.HEIC", "rect":[0.333,0.725,0.335,0.735], "size":[256,1024], "assembly":"mirror", "brightness":1.5, "normalStrength":0.35},
+    {"name":"alice-red-cloth", "source":"IMG_2375.HEIC", "quad":[[0.368875,0.494375],[0.402375,0.502875],[0.363875,0.513375],[0.331875,0.504375]], "size":[512,512], "assembly":"single", "normalStrength":0.3},
+    {"name":"chair-back-oak", "source":"IMG_2377.HEIC", "quad":[[0.723,0.478],[0.825,0.499],[0.823,0.52],[0.721,0.499]], "size":[512,256], "assembly":"mirror", "normalStrength":0.35}
+  ]
+}

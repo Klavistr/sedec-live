@@ -56,3 +56,15 @@ recordings/
 # Local CVXR configuration
 streaming.local.json
 streaming.local.json.meta
+
+# Local annotated reference photographs (may include bystanders and slides)
+cvxr/castle-of-ideas/preview/photo-review/
+# CCK creates temporary scene copies when Test in PlayMode runs.
+cvxr/castle-of-ideas/unity/Assets/cvrworld_*.unity
+cvxr/castle-of-ideas/unity/Assets/cvrworld_*.unity.meta
+# Editable wallpaper layers and full-room review canvas are reproducible previews.
+cvxr/castle-of-ideas/preview/alice-wallpaper/
+cvxr/castle-of-ideas/preview/unity-*.png
+cvxr/castle-of-ideas/preview/main-interior.png
+cvxr/castle-of-ideas/preview/fireplace.png
+cvxr/castle-of-ideas/preview/alice-font-candidates.png

@@ -1,0 +1,1021 @@
+{
+  "schemaVersion": 3,
+  "seed": 241029,
+  "pixelsPerMeter": 384,
+  "pageSizePixels": [
+    815,
+    1152
+  ],
+  "pageAspect": "ISO B: width/height = 1/sqrt(2)",
+  "pageCount": 19,
+  "atlasHorizontalFitScale": 1.0018727801097838,
+  "canvasSizePixels": [
+    15514,
+    1152
+  ],
+  "wallOrder": [
+    "north",
+    "east",
+    "south",
+    "west"
+  ],
+  "contourClearanceMeters": 0.025,
+  "removedFormatting": [
+    "asterisk separator rows",
+    "rule-only separator rows",
+    "illustration placeholders"
+  ],
+  "repeatedText": false,
+  "repeatedIllustrations": false,
+  "textWordsPlaced": 20327,
+  "pages": [
+    {
+      "number": 1,
+      "chapter": 1,
+      "wordStart": 0,
+      "wordEnd": 954,
+      "fontSizePixels": 17,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          82.85538982253183,
+          92.61629042972012
+        ],
+        "phase": [
+          4.937294223701615,
+          0.23525661951334395
+        ],
+        "jacobianMinimum": 0.6830918757669914,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-01.txt",
+      "textSha256": "f4db32d35219a460fcb5b839763d99a47a4c20b54c58cfe4c48d23fe32813d61"
+    },
+    {
+      "number": 2,
+      "chapter": 1,
+      "wordStart": 954,
+      "wordEnd": 2008,
+      "fontSizePixels": 17,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          83.40492594974175,
+          93.66060411027829
+        ],
+        "phase": [
+          3.3634317960051763,
+          0.8159419950952717
+        ],
+        "jacobianMinimum": 0.7300311874909612,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-02.txt",
+      "textSha256": "dc5a64c5b060f4f6e67ac5d0bf1c646ae0ff685e7ab8c9d66590d49e1513e836"
+    },
+    {
+      "number": 3,
+      "chapter": 2,
+      "wordStart": 0,
+      "wordEnd": 1044,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          78.8571622699997,
+          88.26012352088321
+        ],
+        "phase": [
+          3.443536554960924,
+          0.7762735284691837
+        ],
+        "jacobianMinimum": 0.7405435853432529,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-03.txt",
+      "textSha256": "e5d565199a1a302ba76eac29870b0bc584c6cab7049c877765a16bf0b1c00033"
+    },
+    {
+      "number": 4,
+      "chapter": 3,
+      "wordStart": 0,
+      "wordEnd": 1165,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          80.7855438750517,
+          90.97648663519664
+        ],
+        "phase": [
+          1.8449545824183564,
+          5.641335822310709
+        ],
+        "jacobianMinimum": 0.6921789387581897,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-04.txt",
+      "textSha256": "ca521dabdd096e8a1866005ae2234f53f530052bd071d634c216c410b0f8d8f1"
+    },
+    {
+      "number": 5,
+      "chapter": 4,
+      "wordStart": 0,
+      "wordEnd": 1238,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          78.04676304132182,
+          102.44948435125798
+        ],
+        "phase": [
+          5.203608405158339,
+          4.867815685917755
+        ],
+        "jacobianMinimum": 0.673148720987023,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-05.txt",
+      "textSha256": "fc7983ad2e453188a68676464976a14b62483f68f6287ab90bb39d554534dc57"
+    },
+    {
+      "number": 6,
+      "chapter": 4,
+      "wordStart": 1238,
+      "wordEnd": 2306,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          81.69282772077656,
+          102.57168987492899
+        ],
+        "phase": [
+          5.74210024057825,
+          5.535127663608051
+        ],
+        "jacobianMinimum": 0.6514794154255591,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-06.txt",
+      "textSha256": "57736357fa61243cc9c225ffec2939f6d38d6ca215c72e41500436c940d6aa3c"
+    },
+    {
+      "number": 7,
+      "chapter": 5,
+      "wordStart": 0,
+      "wordEnd": 846,
+      "fontSizePixels": 16,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          83.00247664634269,
+          102.19141488292553
+        ],
+        "phase": [
+          1.8088621608281457,
+          1.6220493966158944
+        ],
+        "jacobianMinimum": 0.659336545655691,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-07.txt",
+      "textSha256": "28430b0de3d5190a58a1e351154cad432d656d19ce57f8d659c9ce0def1cc16e"
+    },
+    {
+      "number": 8,
+      "chapter": 5,
+      "wordStart": 846,
+      "wordEnd": 1970,
+      "fontSizePixels": 16,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          80.30777622894809,
+          100.64295185656165
+        ],
+        "phase": [
+          4.13889011709423,
+          0.9480631367517015
+        ],
+        "jacobianMinimum": 0.6945221910866674,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-08.txt",
+      "textSha256": "ac677d0e4a31f9a0b21e1f1ed9f1244b5de1a9dd9574927bb26bbf7460fb9c4c"
+    },
+    {
+      "number": 9,
+      "chapter": 6,
+      "wordStart": 0,
+      "wordEnd": 1035,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          82.54273206087191,
+          88.2412396982707
+        ],
+        "phase": [
+          0.5523088986740831,
+          2.33349100983733
+        ],
+        "jacobianMinimum": 0.7118871142393153,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-09.txt",
+      "textSha256": "95e8150b55301687aea90ada6259375c3ac80aa298af773946b6e73c27485e8d"
+    },
+    {
+      "number": 10,
+      "chapter": 6,
+      "wordStart": 1035,
+      "wordEnd": 2297,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          82.02030735412254,
+          87.22571051515818
+        ],
+        "phase": [
+          0.19068874378418849,
+          3.0949865505959653
+        ],
+        "jacobianMinimum": 0.7426005949471871,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-10.txt",
+      "textSha256": "9f31dcdb912ba4a2db8ba8e63cc4e299bb741cf031fc9b22745fad6864e11b30"
+    },
+    {
+      "number": 11,
+      "chapter": 7,
+      "wordStart": 0,
+      "wordEnd": 1056,
+      "fontSizePixels": 16,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          91.44265199767975,
+          96.27112915584374
+        ],
+        "phase": [
+          3.3548080236457647,
+          0.21400697168312022
+        ],
+        "jacobianMinimum": 0.7099101482711684,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-11.txt",
+      "textSha256": "91663c534919bfefe4738c20ccc21d987121a0b28c770c9a3c0c5df0f646577a"
+    },
+    {
+      "number": 12,
+      "chapter": 7,
+      "wordStart": 1056,
+      "wordEnd": 2107,
+      "fontSizePixels": 16,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          87.50061955533543,
+          101.64404838762263
+        ],
+        "phase": [
+          3.365406475548304,
+          0.8261024921122637
+        ],
+        "jacobianMinimum": 0.716327552795754,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-12.txt",
+      "textSha256": "0e81d0ebbfb14fc266e2a10d01ecd6297358bdb49aaf811a2d3c6c7f9de6f643"
+    },
+    {
+      "number": 13,
+      "chapter": 8,
+      "wordStart": 0,
+      "wordEnd": 1083,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          83.93837851949262,
+          98.13232009934477
+        ],
+        "phase": [
+          2.2424720161560967,
+          1.3699020197370988
+        ],
+        "jacobianMinimum": 0.6861051631031059,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-13.txt",
+      "textSha256": "e935c9a086f5f4157bc1f0d3e53165cd636a4d8b6e22efd7f9340224854cdd0a"
+    },
+    {
+      "number": 14,
+      "chapter": 8,
+      "wordStart": 1083,
+      "wordEnd": 2165,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          89.84294357101328,
+          86.58002078150882
+        ],
+        "phase": [
+          5.158667583125646,
+          4.76489451689924
+        ],
+        "jacobianMinimum": 0.6588782464426874,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-14.txt",
+      "textSha256": "93dd565aec4ae83b5d58257057020b925f97def45b48f6a351406cd75658d1ad"
+    },
+    {
+      "number": 15,
+      "chapter": 9,
+      "wordStart": 0,
+      "wordEnd": 955,
+      "fontSizePixels": 16,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          92.64080239267219,
+          103.21936490557871
+        ],
+        "phase": [
+          2.4519087061001543,
+          1.1644620978108544
+        ],
+        "jacobianMinimum": 0.6717302391966116,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-15.txt",
+      "textSha256": "29baa4c5220cab4bb3b61f5604794bb595c31e66ba445b912000ce72c9a1e5e2"
+    },
+    {
+      "number": 16,
+      "chapter": 9,
+      "wordStart": 955,
+      "wordEnd": 2068,
+      "fontSizePixels": 16,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          84.34882056683993,
+          99.28417895677009
+        ],
+        "phase": [
+          3.3727829464523507,
+          3.0679932291250207
+        ],
+        "jacobianMinimum": 0.6493596250659743,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-16.txt",
+      "textSha256": "180ae525b4ddfd8b6ec2236c7327a15ee57627a805b6298bb45e7edf75a419aa"
+    },
+    {
+      "number": 17,
+      "chapter": 10,
+      "wordStart": 0,
+      "wordEnd": 1142,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          92.29637397186143,
+          103.48033157280041
+        ],
+        "phase": [
+          0.6201410206389165,
+          4.122460991379875
+        ],
+        "jacobianMinimum": 0.682025653093775,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-17.txt",
+      "textSha256": "ec9ec629953d1f5269fe9c997e58e1ee0a11cfa0ad724f694f66bc303049d73f"
+    },
+    {
+      "number": 18,
+      "chapter": 11,
+      "wordStart": 0,
+      "wordEnd": 1027,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          93.57106921993301,
+          99.0205863011995
+        ],
+        "phase": [
+          4.034094022440766,
+          2.4843451954616818
+        ],
+        "jacobianMinimum": 0.6189682008985761,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-18.txt",
+      "textSha256": "11b2aa102b478abd74850b831b97282bd5484009b8f7b6d8bc62426ee370b644"
+    },
+    {
+      "number": 19,
+      "chapter": 12,
+      "wordStart": 0,
+      "wordEnd": 1028,
+      "fontSizePixels": 15,
+      "columns": 2,
+      "lens": {
+        "type": "smooth-wave-refraction",
+        "amplitudePixels": [
+          86.1176907139978,
+          82.96851254955203
+        ],
+        "phase": [
+          2.311395899040524,
+          4.805854666268407
+        ],
+        "jacobianMinimum": 0.6823867885533661,
+        "edgeMapping": "identity"
+      },
+      "excerpt": "references/alice/excerpts/wallpaper-page-19.txt",
+      "textSha256": "7e709f6aa9de8ef46598d812b7f4e109a3316ceb0b390d5eb2d46bf72b31a396"
+    }
+  ],
+  "placements": [
+    {
+      "source": "tenniel/alice02a.gif",
+      "number": 2,
+      "chapter": 1,
+      "rect": [
+        356,
+        746,
+        572,
+        1079
+      ],
+      "page": 1
+    },
+    {
+      "source": "tenniel/alice04a.gif",
+      "number": 4,
+      "chapter": 1,
+      "rect": [
+        318,
+        319,
+        496,
+        583
+      ],
+      "page": 1
+    },
+    {
+      "source": "tenniel/alice03a.gif",
+      "number": 3,
+      "chapter": 1,
+      "rect": [
+        235,
+        407,
+        449,
+        613
+      ],
+      "page": 2
+    },
+    {
+      "source": "tenniel/alice05a.gif",
+      "number": 5,
+      "chapter": 2,
+      "rect": [
+        102,
+        348,
+        213,
+        637
+      ],
+      "page": 3
+    },
+    {
+      "source": "tenniel/alice06a.gif",
+      "number": 6,
+      "chapter": 2,
+      "rect": [
+        159,
+        741,
+        397,
+        1031
+      ],
+      "page": 3
+    },
+    {
+      "source": "tenniel/alice07a.gif",
+      "number": 7,
+      "chapter": 2,
+      "rect": [
+        572,
+        885,
+        770,
+        1048
+      ],
+      "page": 3
+    },
+    {
+      "source": "tenniel/alice08a.gif",
+      "number": 8,
+      "chapter": 2,
+      "rect": [
+        76,
+        136,
+        348,
+        312
+      ],
+      "page": 3
+    },
+    {
+      "source": "tenniel/alice09a.gif",
+      "number": 9,
+      "chapter": 3,
+      "rect": [
+        399,
+        654,
+        639,
+        920
+      ],
+      "page": 4
+    },
+    {
+      "source": "tenniel/alice10a.gif",
+      "number": 10,
+      "chapter": 3,
+      "rect": [
+        93,
+        605,
+        339,
+        793
+      ],
+      "page": 4
+    },
+    {
+      "source": "tenniel/alice11a.gif",
+      "number": 11,
+      "chapter": 4,
+      "rect": [
+        422,
+        249,
+        639,
+        401
+      ],
+      "page": 5
+    },
+    {
+      "source": "tenniel/alice13a.gif",
+      "number": 13,
+      "chapter": 4,
+      "rect": [
+        580,
+        474,
+        690,
+        787
+      ],
+      "page": 5
+    },
+    {
+      "source": "tenniel/alice12a.gif",
+      "number": 12,
+      "chapter": 4,
+      "rect": [
+        105,
+        565,
+        298,
+        849
+      ],
+      "page": 6
+    },
+    {
+      "source": "tenniel/alice14a.gif",
+      "number": 14,
+      "chapter": 4,
+      "rect": [
+        163,
+        163,
+        380,
+        419
+      ],
+      "page": 6
+    },
+    {
+      "source": "tenniel/alice15a.gif",
+      "number": 15,
+      "chapter": 5,
+      "rect": [
+        440,
+        264,
+        629,
+        514
+      ],
+      "page": 7
+    },
+    {
+      "source": "tenniel/alice17a.gif",
+      "number": 17,
+      "chapter": 5,
+      "rect": [
+        88,
+        509,
+        369,
+        719
+      ],
+      "page": 7
+    },
+    {
+      "source": "tenniel/alice19a.gif",
+      "number": 19,
+      "chapter": 5,
+      "rect": [
+        482,
+        759,
+        743,
+        953
+      ],
+      "page": 7
+    },
+    {
+      "source": "tenniel/alice16a.gif",
+      "number": 16,
+      "chapter": 5,
+      "rect": [
+        395,
+        922,
+        616,
+        1085
+      ],
+      "page": 8
+    },
+    {
+      "source": "tenniel/alice18a.gif",
+      "number": 18,
+      "chapter": 5,
+      "rect": [
+        284,
+        273,
+        477,
+        416
+      ],
+      "page": 8
+    },
+    {
+      "source": "tenniel/alice20a.gif",
+      "number": 20,
+      "chapter": 6,
+      "rect": [
+        540,
+        278,
+        759,
+        543
+      ],
+      "page": 9
+    },
+    {
+      "source": "tenniel/alice22a.gif",
+      "number": 22,
+      "chapter": 6,
+      "rect": [
+        360,
+        597,
+        573,
+        913
+      ],
+      "page": 9
+    },
+    {
+      "source": "tenniel/alice24a.gif",
+      "number": 24,
+      "chapter": 6,
+      "rect": [
+        41,
+        882,
+        294,
+        1048
+      ],
+      "page": 9
+    },
+    {
+      "source": "tenniel/alice21a.gif",
+      "number": 21,
+      "chapter": 6,
+      "rect": [
+        187,
+        116,
+        373,
+        269
+      ],
+      "page": 10
+    },
+    {
+      "source": "tenniel/alice23a.gif",
+      "number": 23,
+      "chapter": 6,
+      "rect": [
+        582,
+        834,
+        774,
+        1107
+      ],
+      "page": 10
+    },
+    {
+      "source": "tenniel/alice25a.gif",
+      "number": 25,
+      "chapter": 7,
+      "rect": [
+        44,
+        503,
+        229,
+        641
+      ],
+      "page": 11
+    },
+    {
+      "source": "tenniel/alice27a.gif",
+      "number": 27,
+      "chapter": 7,
+      "rect": [
+        141,
+        845,
+        395,
+        1071
+      ],
+      "page": 11
+    },
+    {
+      "source": "tenniel/alice26a.gif",
+      "number": 26,
+      "chapter": 7,
+      "rect": [
+        270,
+        581,
+        518,
+        866
+      ],
+      "page": 12
+    },
+    {
+      "source": "tenniel/alice28a.gif",
+      "number": 28,
+      "chapter": 8,
+      "rect": [
+        82,
+        694,
+        265,
+        951
+      ],
+      "page": 13
+    },
+    {
+      "source": "tenniel/alice30a.gif",
+      "number": 30,
+      "chapter": 8,
+      "rect": [
+        440,
+        221,
+        676,
+        553
+      ],
+      "page": 13
+    },
+    {
+      "source": "tenniel/alice29a.gif",
+      "number": 29,
+      "chapter": 8,
+      "rect": [
+        204,
+        179,
+        482,
+        507
+      ],
+      "page": 14
+    },
+    {
+      "source": "tenniel/alice31a.gif",
+      "number": 31,
+      "chapter": 8,
+      "rect": [
+        243,
+        561,
+        461,
+        839
+      ],
+      "page": 14
+    },
+    {
+      "source": "tenniel/alice32a.gif",
+      "number": 32,
+      "chapter": 9,
+      "rect": [
+        256,
+        178,
+        461,
+        479
+      ],
+      "page": 15
+    },
+    {
+      "source": "tenniel/alice34a.gif",
+      "number": 34,
+      "chapter": 9,
+      "rect": [
+        100,
+        691,
+        291,
+        917
+      ],
+      "page": 15
+    },
+    {
+      "source": "tenniel/alice33a.gif",
+      "number": 33,
+      "chapter": 9,
+      "rect": [
+        86,
+        702,
+        283,
+        838
+      ],
+      "page": 16
+    },
+    {
+      "source": "tenniel/alice35a.gif",
+      "number": 35,
+      "chapter": 10,
+      "rect": [
+        579,
+        771,
+        786,
+        1021
+      ],
+      "page": 17
+    },
+    {
+      "source": "tenniel/alice36a.gif",
+      "number": 36,
+      "chapter": 10,
+      "rect": [
+        326,
+        826,
+        492,
+        1117
+      ],
+      "page": 17
+    },
+    {
+      "source": "tenniel/alice01a.gif",
+      "number": 1,
+      "chapter": 11,
+      "rect": [
+        235,
+        536,
+        414,
+        795
+      ],
+      "page": 18
+    },
+    {
+      "source": "tenniel/alice37a.gif",
+      "number": 37,
+      "chapter": 11,
+      "rect": [
+        557,
+        891,
+        725,
+        1128
+      ],
+      "page": 18
+    },
+    {
+      "source": "tenniel/alice38a.gif",
+      "number": 38,
+      "chapter": 11,
+      "rect": [
+        254,
+        156,
+        483,
+        497
+      ],
+      "page": 18
+    },
+    {
+      "source": "tenniel/alice39a.gif",
+      "number": 39,
+      "chapter": 11,
+      "rect": [
+        521,
+        665,
+        712,
+        816
+      ],
+      "page": 18
+    },
+    {
+      "source": "tenniel/alice40a.gif",
+      "number": 40,
+      "chapter": 12,
+      "rect": [
+        100,
+        225,
+        335,
+        518
+      ],
+      "page": 19
+    },
+    {
+      "source": "tenniel/alice41a.gif",
+      "number": 41,
+      "chapter": 12,
+      "rect": [
+        364,
+        706,
+        553,
+        948
+      ],
+      "page": 19
+    },
+    {
+      "source": "tenniel/alice42a.gif",
+      "number": 42,
+      "chapter": 12,
+      "rect": [
+        437,
+        121,
+        635,
+        390
+      ],
+      "page": 19
+    }
+  ],
+  "sourceHashes": {
+    "tenniel/alice01a.gif": "5d05d8c37c6a9b0a7aed3f7ad17f861a7a32d2b097e627911829ef02b2b77807",
+    "tenniel/alice02a.gif": "a19cb851c26ae8f978b2d4443737ecba6e16dbcd75c0e186a826de6c152febca",
+    "tenniel/alice03a.gif": "33e545a306b77f1f4e715a9db872ee12ad8f3808b78836fbc86c8508e2e98560",
+    "tenniel/alice04a.gif": "25783f7ca6e0f4625a6c3a8477428654c9f4d96fe6a46a8edbafa4a85bdf9888",
+    "tenniel/alice05a.gif": "3f9fe42d428e7e68e38bbc93b010218ecd4519496ba15fcd4b7e7bb0e97b22fa",
+    "tenniel/alice06a.gif": "78ca0ad216b63ce9cc95f2f8acf058ded648f99a6e977f641da89348eb3a2478",
+    "tenniel/alice07a.gif": "2d0de9ed9d4da9c8469852ae82256048a63364a675c7c1bcc42631cbdbdc8e1b",
+    "tenniel/alice08a.gif": "efe7cc90455b69397903f99a19a17fbfe152c9280ac805c0ec007bd4d7db81f7",
+    "tenniel/alice09a.gif": "c4fb66a8ac86b9f58e01f39c1029809c0754acb299f4b343ba388b23f4fb7377",
+    "tenniel/alice10a.gif": "c1815107c71d7b2eda3f126c7e81e208f33bfba2d0f8c70fc9981d7229504b17",
+    "tenniel/alice11a.gif": "9186761ab72f0ca5733cee57b7c181abbf83abc7a7e82977d59380c719cfe20d",
+    "tenniel/alice12a.gif": "961400dbfa0213c67091d7fdb47eafd1102477ec9dcd0a7cffb48cc956438f10",
+    "tenniel/alice13a.gif": "97718c26e1997ac1920eec60f1aa5722d5f74f6e1361a71a8c7a5f0cc0fa6e43",
+    "tenniel/alice14a.gif": "6ab9dbf379a59d8a65c9aca48727f81e046f8cb7580f612b6fd4343683f7e40a",
+    "tenniel/alice15a.gif": "1829e0bf84f1d79cbf2cb18e90ad481cbb014af00a6371c010790a7b79e481f7",
+    "tenniel/alice16a.gif": "362bd605b1c1aaafb37f5d18c2007d9b31ad179ff4743961363ae7e35707e341",
+    "tenniel/alice17a.gif": "608aaf37f04700148ccca5e2922ebcceb73cd2e71faacf9d4f49db097d4f2fc7",
+    "tenniel/alice18a.gif": "69d11f9cef1f253bddefc9dd9265d85bd8e95a3d78b912cd33683c49992fab8e",
+    "tenniel/alice19a.gif": "95ed5f629364b62612199ad4e696a451253c9dded138a02daca02d1ed69098c6",
+    "tenniel/alice20a.gif": "cb4c701812d53ac96a5682c566185929613ab233086a3d19c8b1bf6060c75450",
+    "tenniel/alice21a.gif": "e315fd279180722df9456d82fd3b5dc81d41c0a09a720681f02b685f1738d7f3",
+    "tenniel/alice22a.gif": "012d789b93abea2d32f6b706e433abb6aa116df42d4b0a98c2de369c67da1c45",
+    "tenniel/alice23a.gif": "17b06d5287adafc35e866e67ce81f7c8d1a1fcadb6a89f027e34e3e23f5fc975",
+    "tenniel/alice24a.gif": "21febc1c95b7d194eb8846a67b96f1643d22ef89e7bdc1599987e84f785c3f81",
+    "tenniel/alice25a.gif": "870a5cf21b6a73090b69d71f04bd2dbf2dd494de3aec69d0c82484d350ca253e",
+    "tenniel/alice26a.gif": "83d7ac49a2981758112b5d0d5767a4159c0077d0650745ca72f49f66bd1f02ec",
+    "tenniel/alice27a.gif": "ec44a4edb822c9f96ba0a4c4a949e8adc3fce6f02946ee68155ee8acd70410dc",
+    "tenniel/alice28a.gif": "1e4ceb1575125acbd286746b2f9f24a696ec6cdae99e01624edb8cb60768d8a9",
+    "tenniel/alice29a.gif": "19cbd6243a9c5f7f3c23a2f3d04bb89bba648cfff59a4530b8b44c2a198d2b86",
+    "tenniel/alice30a.gif": "40994ec4359c32458b089b7f4f5aed3d3284c0e66947a7d74c2a21d47fd878ef",
+    "tenniel/alice31a.gif": "b7b3f7d8f516e9ff826a1a73cda73e6b15f132ba3fb219bf71993deca563556f",
+    "tenniel/alice32a.gif": "b39700e58fd496139471111da4eb3d1e2cad3fddca03255a3d830ed48bb008be",
+    "tenniel/alice33a.gif": "58689f3caaece9498098d5757042a574e7fc1fc917cb66240e74518281643913",
+    "tenniel/alice34a.gif": "24017d76b9d2e043a6d9407e92ced9c4ac118a2c612b8f530fe8e12f503e6f51",
+    "tenniel/alice35a.gif": "bfe661c54f0ecb815f75add7ded12317c8fc3b0582dcaa1c33319136dfb56b4f",
+    "tenniel/alice36a.gif": "0d070409a42d51ec54064442e538248e6666c5b264ffb49cd8bd76d9f4b632d4",
+    "tenniel/alice37a.gif": "c59f5d89da864c733714e4e3d57cc514840facd213ee993351dabf5973671019",
+    "tenniel/alice38a.gif": "9ad8553a3b3344cce7277a43613c94aa68a90f1a91e1f4930d7b06a4e09336e6",
+    "tenniel/alice39a.gif": "f8434514115ecf0a491e941d3122126424fc9154b37e7e23cf603835d2eea914",
+    "tenniel/alice40a.gif": "b4715725db43557abe86d1ab9b0b11fc5cfa9e9561ec8406c34d87c7152feacf",
+    "tenniel/alice41a.gif": "23428c109565290adea744f9df411d18c0f8b2465b0ae8c03be0fd32b0162df6",
+    "tenniel/alice42a.gif": "2688dbc60c66c8ffc09b75549eccc1ccb09c2f8a9c0002560450658a0a25dbe6"
+  },
+  "fontSha256": "4e7f471379588b2e40a6e9a96407e0d03207b5185fd92b77481abb4c9eae0e80"
+}

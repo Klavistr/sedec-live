@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 2,
+  "selectedFont": "Hoefler Text",
+  "fontRedistributed": false,
+  "generatedImagery": false,
+  "records": [
+    {
+      "name": "white-rabbit",
+      "kind": "illustration",
+      "source": "white-rabbit.gif",
+      "sourceUrl": "https://www.gutenberg.org/files/114/114-h/images/alice02a.gif",
+      "sourceSha256": "a19cb851c26ae8f978b2d4443737ecba6e16dbcd75c0e186a826de6c152febca",
+      "outputSha256": "238ab95e005d05ca70de4fecb00afc015289d380c2fffa3694f2a88b8ddcc451",
+      "processing": "autocontrast; black ink/cream paper mapping; proportional resize, no crop"
+    },
+    {
+      "name": "cheshire-cat",
+      "kind": "illustration",
+      "source": "cheshire-cat.gif",
+      "sourceUrl": "https://www.gutenberg.org/files/114/114-h/images/alice23a.gif",
+      "sourceSha256": "17b06d5287adafc35e866e67ce81f7c8d1a1fcadb6a89f027e34e3e23f5fc975",
+      "outputSha256": "c29e0f415bdf8d0902c70410fdbb6d56c3e7ae3f0ffb567666948bc564b1325f",
+      "processing": "autocontrast; black ink/cream paper mapping; proportional resize, no crop"
+    },
+    {
+      "name": "tea-party",
+      "kind": "illustration",
+      "source": "tea-party.gif",
+      "sourceUrl": "https://www.gutenberg.org/files/114/114-h/images/alice25a.gif",
+      "sourceSha256": "870a5cf21b6a73090b69d71f04bd2dbf2dd494de3aec69d0c82484d350ca253e",
+      "outputSha256": "d35dde6357cc04dd14738c2a073a3b73e0bd5d8fbe29e9ea419b6c1c2b9b093b",
+      "processing": "autocontrast; black ink/cream paper mapping; proportional resize, no crop"
+    },
+    {
+      "name": "text-rabbit-hole",
+      "kind": "text",
+      "sourceUrl": "https://www.gutenberg.org/cache/epub/11/pg11.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "sourceCharacterOffsetFromOpening": 0,
+      "excerpt": "references/alice/excerpts/text-rabbit-hole.txt",
+      "fontFamily": "Hoefler Text",
+      "fontFile": "Hoefler Text.ttc",
+      "fontSha256": "4e7f471379588b2e40a6e9a96407e0d03207b5185fd92b77481abb4c9eae0e80",
+      "outputSha256": "2e3f3bd21739a4d294996404da63ecf4accd16d9983e4b0511c460b520f883b9"
+    },
+    {
+      "name": "text-tea-party",
+      "kind": "text",
+      "sourceUrl": "https://www.gutenberg.org/cache/epub/11/pg11.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "sourceCharacterOffsetFromOpening": 71531,
+      "excerpt": "references/alice/excerpts/text-tea-party.txt",
+      "fontFamily": "Hoefler Text",
+      "fontFile": "Hoefler Text.ttc",
+      "fontSha256": "4e7f471379588b2e40a6e9a96407e0d03207b5185fd92b77481abb4c9eae0e80",
+      "outputSha256": "ba049d3c79299ba274211bfa08c9a1795e7471cde6a891cc27a53bd786ed6fc4"
+    },
+    {
+      "name": "text-curious",
+      "kind": "text",
+      "sourceUrl": "https://www.gutenberg.org/cache/epub/11/pg11.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "sourceCharacterOffsetFromOpening": 11554,
+      "excerpt": "references/alice/excerpts/text-curious.txt",
+      "fontFamily": "Hoefler Text",
+      "fontFile": "Hoefler Text.ttc",
+      "fontSha256": "4e7f471379588b2e40a6e9a96407e0d03207b5185fd92b77481abb4c9eae0e80",
+      "outputSha256": "5e9513648255de84571ebc1cee671e2f50ef1d01d51d927697f9d16cbf5f3626"
+    },
+    {
+      "name": "wallpaper-north",
+      "kind": "wallpaper",
+      "source": "pg11-source.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "outputSha256": "f67f142812088173d4a36c8b20a045494341915518c3eff845bbde5cd8048cb1",
+      "fontFamily": "Hoefler Text",
+      "canvasCropPixels": [
+        0,
+        0,
+        5299,
+        1152
+      ]
+    },
+    {
+      "name": "wallpaper-east",
+      "kind": "wallpaper",
+      "source": "pg11-source.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "outputSha256": "10275e1a95421ff37d3880c8664a8d1d97a4346b34a4d5a897acae5935252c5e",
+      "fontFamily": "Hoefler Text",
+      "canvasCropPixels": [
+        5299,
+        0,
+        7757,
+        1152
+      ]
+    },
+    {
+      "name": "wallpaper-south",
+      "kind": "wallpaper",
+      "source": "pg11-source.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "outputSha256": "a09ad50c8c48d0ede92324b735b7efc71d384c6d2aa5d7c112060e511dc6b74a",
+      "fontFamily": "Hoefler Text",
+      "canvasCropPixels": [
+        7757,
+        0,
+        13056,
+        1152
+      ]
+    },
+    {
+      "name": "wallpaper-west",
+      "kind": "wallpaper",
+      "source": "pg11-source.txt",
+      "sourceSha256": "01b38ea4c710a84bc18d0bd41271a5a1a92b94e97b2812f4dece97d4a694725e",
+      "outputSha256": "b006ca9cfe61d63b48908154f2779ec214915bf8d617e23414dfbbee1a41aa9a",
+      "fontFamily": "Hoefler Text",
+      "canvasCropPixels": [
+        13056,
+        0,
+        15514,
+        1152
+      ]
+    }
+  ]
+}

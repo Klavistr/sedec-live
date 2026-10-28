@@ -27,7 +27,9 @@ cvxr-world:
 		--output $(CVXR_WORLD)/blender/castle-of-ideas.blend \
 		--export-fbx $(CVXR_WORLD)/unity/Assets/CastleOfIdeas/Models/castle-of-ideas.fbx \
 		--render $(CVXR_WORLD)/preview/blockout.png \
-		--render-elevator $(CVXR_WORLD)/preview/elevator-interior.png
+		--render-elevator $(CVXR_WORLD)/preview/elevator-interior.png \
+		--render-main $(CVXR_WORLD)/preview/main-interior.png \
+		--render-fireplace $(CVXR_WORLD)/preview/fireplace.png
 
 clean:
 	@echo "Remove generated files manually after reviewing them; .venv is intentionally preserved."

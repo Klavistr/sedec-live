@@ -14,3 +14,7 @@
 *.fbx binary
 *.glb binary
 
+# Preserve downloaded source bytes so their provenance hashes survive cloning.
+cvxr/castle-of-ideas/references/alice/pg11-source.txt binary
+cvxr/castle-of-ideas/references/alice/illustrations-license.txt binary
+

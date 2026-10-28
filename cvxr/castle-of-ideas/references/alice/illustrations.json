@@ -1,0 +1,301 @@
+{
+  "author": "John Tenniel",
+  "source": "https://www.gutenberg.org/ebooks/114",
+  "rightsStatement": "../illustrations-license.txt",
+  "illustrations": [
+    {
+      "number": 1,
+      "chapter": 11,
+      "file": "tenniel/alice01a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice01a.gif",
+      "sha256": "5d05d8c37c6a9b0a7aed3f7ad17f861a7a32d2b097e627911829ef02b2b77807"
+    },
+    {
+      "number": 2,
+      "chapter": 1,
+      "file": "tenniel/alice02a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice02a.gif",
+      "sha256": "a19cb851c26ae8f978b2d4443737ecba6e16dbcd75c0e186a826de6c152febca"
+    },
+    {
+      "number": 3,
+      "chapter": 1,
+      "file": "tenniel/alice03a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice03a.gif",
+      "sha256": "33e545a306b77f1f4e715a9db872ee12ad8f3808b78836fbc86c8508e2e98560"
+    },
+    {
+      "number": 4,
+      "chapter": 1,
+      "file": "tenniel/alice04a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice04a.gif",
+      "sha256": "25783f7ca6e0f4625a6c3a8477428654c9f4d96fe6a46a8edbafa4a85bdf9888"
+    },
+    {
+      "number": 5,
+      "chapter": 2,
+      "file": "tenniel/alice05a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice05a.gif",
+      "sha256": "3f9fe42d428e7e68e38bbc93b010218ecd4519496ba15fcd4b7e7bb0e97b22fa"
+    },
+    {
+      "number": 6,
+      "chapter": 2,
+      "file": "tenniel/alice06a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice06a.gif",
+      "sha256": "78ca0ad216b63ce9cc95f2f8acf058ded648f99a6e977f641da89348eb3a2478"
+    },
+    {
+      "number": 7,
+      "chapter": 2,
+      "file": "tenniel/alice07a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice07a.gif",
+      "sha256": "2d0de9ed9d4da9c8469852ae82256048a63364a675c7c1bcc42631cbdbdc8e1b"
+    },
+    {
+      "number": 8,
+      "chapter": 2,
+      "file": "tenniel/alice08a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice08a.gif",
+      "sha256": "efe7cc90455b69397903f99a19a17fbfe152c9280ac805c0ec007bd4d7db81f7"
+    },
+    {
+      "number": 9,
+      "chapter": 3,
+      "file": "tenniel/alice09a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice09a.gif",
+      "sha256": "c4fb66a8ac86b9f58e01f39c1029809c0754acb299f4b343ba388b23f4fb7377"
+    },
+    {
+      "number": 10,
+      "chapter": 3,
+      "file": "tenniel/alice10a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice10a.gif",
+      "sha256": "c1815107c71d7b2eda3f126c7e81e208f33bfba2d0f8c70fc9981d7229504b17"
+    },
+    {
+      "number": 11,
+      "chapter": 4,
+      "file": "tenniel/alice11a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice11a.gif",
+      "sha256": "9186761ab72f0ca5733cee57b7c181abbf83abc7a7e82977d59380c719cfe20d"
+    },
+    {
+      "number": 12,
+      "chapter": 4,
+      "file": "tenniel/alice12a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice12a.gif",
+      "sha256": "961400dbfa0213c67091d7fdb47eafd1102477ec9dcd0a7cffb48cc956438f10"
+    },
+    {
+      "number": 13,
+      "chapter": 4,
+      "file": "tenniel/alice13a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice13a.gif",
+      "sha256": "97718c26e1997ac1920eec60f1aa5722d5f74f6e1361a71a8c7a5f0cc0fa6e43"
+    },
+    {
+      "number": 14,
+      "chapter": 4,
+      "file": "tenniel/alice14a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice14a.gif",
+      "sha256": "6ab9dbf379a59d8a65c9aca48727f81e046f8cb7580f612b6fd4343683f7e40a"
+    },
+    {
+      "number": 15,
+      "chapter": 5,
+      "file": "tenniel/alice15a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice15a.gif",
+      "sha256": "1829e0bf84f1d79cbf2cb18e90ad481cbb014af00a6371c010790a7b79e481f7"
+    },
+    {
+      "number": 16,
+      "chapter": 5,
+      "file": "tenniel/alice16a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice16a.gif",
+      "sha256": "362bd605b1c1aaafb37f5d18c2007d9b31ad179ff4743961363ae7e35707e341"
+    },
+    {
+      "number": 17,
+      "chapter": 5,
+      "file": "tenniel/alice17a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice17a.gif",
+      "sha256": "608aaf37f04700148ccca5e2922ebcceb73cd2e71faacf9d4f49db097d4f2fc7"
+    },
+    {
+      "number": 18,
+      "chapter": 5,
+      "file": "tenniel/alice18a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice18a.gif",
+      "sha256": "69d11f9cef1f253bddefc9dd9265d85bd8e95a3d78b912cd33683c49992fab8e"
+    },
+    {
+      "number": 19,
+      "chapter": 5,
+      "file": "tenniel/alice19a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice19a.gif",
+      "sha256": "95ed5f629364b62612199ad4e696a451253c9dded138a02daca02d1ed69098c6"
+    },
+    {
+      "number": 20,
+      "chapter": 6,
+      "file": "tenniel/alice20a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice20a.gif",
+      "sha256": "cb4c701812d53ac96a5682c566185929613ab233086a3d19c8b1bf6060c75450"
+    },
+    {
+      "number": 21,
+      "chapter": 6,
+      "file": "tenniel/alice21a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice21a.gif",
+      "sha256": "e315fd279180722df9456d82fd3b5dc81d41c0a09a720681f02b685f1738d7f3"
+    },
+    {
+      "number": 22,
+      "chapter": 6,
+      "file": "tenniel/alice22a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice22a.gif",
+      "sha256": "012d789b93abea2d32f6b706e433abb6aa116df42d4b0a98c2de369c67da1c45"
+    },
+    {
+      "number": 23,
+      "chapter": 6,
+      "file": "tenniel/alice23a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice23a.gif",
+      "sha256": "17b06d5287adafc35e866e67ce81f7c8d1a1fcadb6a89f027e34e3e23f5fc975"
+    },
+    {
+      "number": 24,
+      "chapter": 6,
+      "file": "tenniel/alice24a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice24a.gif",
+      "sha256": "21febc1c95b7d194eb8846a67b96f1643d22ef89e7bdc1599987e84f785c3f81"
+    },
+    {
+      "number": 25,
+      "chapter": 7,
+      "file": "tenniel/alice25a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice25a.gif",
+      "sha256": "870a5cf21b6a73090b69d71f04bd2dbf2dd494de3aec69d0c82484d350ca253e"
+    },
+    {
+      "number": 26,
+      "chapter": 7,
+      "file": "tenniel/alice26a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice26a.gif",
+      "sha256": "83d7ac49a2981758112b5d0d5767a4159c0077d0650745ca72f49f66bd1f02ec"
+    },
+    {
+      "number": 27,
+      "chapter": 7,
+      "file": "tenniel/alice27a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice27a.gif",
+      "sha256": "ec44a4edb822c9f96ba0a4c4a949e8adc3fce6f02946ee68155ee8acd70410dc"
+    },
+    {
+      "number": 28,
+      "chapter": 8,
+      "file": "tenniel/alice28a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice28a.gif",
+      "sha256": "1e4ceb1575125acbd286746b2f9f24a696ec6cdae99e01624edb8cb60768d8a9"
+    },
+    {
+      "number": 29,
+      "chapter": 8,
+      "file": "tenniel/alice29a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice29a.gif",
+      "sha256": "19cbd6243a9c5f7f3c23a2f3d04bb89bba648cfff59a4530b8b44c2a198d2b86"
+    },
+    {
+      "number": 30,
+      "chapter": 8,
+      "file": "tenniel/alice30a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice30a.gif",
+      "sha256": "40994ec4359c32458b089b7f4f5aed3d3284c0e66947a7d74c2a21d47fd878ef"
+    },
+    {
+      "number": 31,
+      "chapter": 8,
+      "file": "tenniel/alice31a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice31a.gif",
+      "sha256": "b7b3f7d8f516e9ff826a1a73cda73e6b15f132ba3fb219bf71993deca563556f"
+    },
+    {
+      "number": 32,
+      "chapter": 9,
+      "file": "tenniel/alice32a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice32a.gif",
+      "sha256": "b39700e58fd496139471111da4eb3d1e2cad3fddca03255a3d830ed48bb008be"
+    },
+    {
+      "number": 33,
+      "chapter": 9,
+      "file": "tenniel/alice33a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice33a.gif",
+      "sha256": "58689f3caaece9498098d5757042a574e7fc1fc917cb66240e74518281643913"
+    },
+    {
+      "number": 34,
+      "chapter": 9,
+      "file": "tenniel/alice34a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice34a.gif",
+      "sha256": "24017d76b9d2e043a6d9407e92ced9c4ac118a2c612b8f530fe8e12f503e6f51"
+    },
+    {
+      "number": 35,
+      "chapter": 10,
+      "file": "tenniel/alice35a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice35a.gif",
+      "sha256": "bfe661c54f0ecb815f75add7ded12317c8fc3b0582dcaa1c33319136dfb56b4f"
+    },
+    {
+      "number": 36,
+      "chapter": 10,
+      "file": "tenniel/alice36a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice36a.gif",
+      "sha256": "0d070409a42d51ec54064442e538248e6666c5b264ffb49cd8bd76d9f4b632d4"
+    },
+    {
+      "number": 37,
+      "chapter": 11,
+      "file": "tenniel/alice37a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice37a.gif",
+      "sha256": "c59f5d89da864c733714e4e3d57cc514840facd213ee993351dabf5973671019"
+    },
+    {
+      "number": 38,
+      "chapter": 11,
+      "file": "tenniel/alice38a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice38a.gif",
+      "sha256": "9ad8553a3b3344cce7277a43613c94aa68a90f1a91e1f4930d7b06a4e09336e6"
+    },
+    {
+      "number": 39,
+      "chapter": 11,
+      "file": "tenniel/alice39a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice39a.gif",
+      "sha256": "f8434514115ecf0a491e941d3122126424fc9154b37e7e23cf603835d2eea914"
+    },
+    {
+      "number": 40,
+      "chapter": 12,
+      "file": "tenniel/alice40a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice40a.gif",
+      "sha256": "b4715725db43557abe86d1ab9b0b11fc5cfa9e9561ec8406c34d87c7152feacf"
+    },
+    {
+      "number": 41,
+      "chapter": 12,
+      "file": "tenniel/alice41a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice41a.gif",
+      "sha256": "23428c109565290adea744f9df411d18c0f8b2465b0ae8c03be0fd32b0162df6"
+    },
+    {
+      "number": 42,
+      "chapter": 12,
+      "file": "tenniel/alice42a.gif",
+      "url": "https://www.gutenberg.org/files/114/114-h/images/alice42a.gif",
+      "sha256": "2688dbc60c66c8ffc09b75549eccc1ccb09c2f8a9c0002560450658a0a25dbe6"
+    }
+  ]
+}

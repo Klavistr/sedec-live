@@ -1,0 +1,448 @@
+{
+  "schemaVersion": 1,
+  "recipeSha256": "57ff0d165777c308d43e9da2737bb9ba2ee28c89c3671de60a92ff2a459a7fe0",
+  "algorithm": "EXIF orientation; rectangle/bilinear quad crop; Lanczos resize; optional mirrored mosaic; brightness; luminance finite-difference normals",
+  "generatedImagery": false,
+  "sources": [
+    {
+      "recipe": {
+        "name": "main-stone",
+        "source": "IMG_7175.HEIC",
+        "rect": [
+          0.05,
+          0.39,
+          0.12,
+          0.47
+        ],
+        "size": [
+          1024,
+          512
+        ],
+        "assembly": "brick",
+        "brightness": 0.88,
+        "normalStrength": 1.2
+      },
+      "sourceSha256": "1788a216a20175693e6404346dce9eb92059b654b769b9a22d41ed99bbfe2953",
+      "orientedSourceSize": [
+        4032,
+        3024
+      ],
+      "textureSha256": "ca9ccca271782b0474adb48a23d73a076d35b93044ea4be7c75e2ef206c49a0b",
+      "normalSha256": "95ee168a7ba885e928bf6e0a4becf94436229c2423ab7c6be3892e83d916e660"
+    },
+    {
+      "recipe": {
+        "name": "floor-stone",
+        "source": "IMG_7173.HEIC",
+        "rect": [
+          0.12,
+          0.54,
+          0.36,
+          0.8
+        ],
+        "size": [
+          1024,
+          1024
+        ],
+        "assembly": "tiles",
+        "normalStrength": 0.8
+      },
+      "sourceSha256": "56c97939b5b150e1ba62bcf8048a9d18ef59c7c221977ff5f6fab6b0f2c5e7af",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "ab5d9ef54dbf19be2489acd0c8ca532fa61d781ce23f4534f606206dac90f119",
+      "normalSha256": "83f1471215cd1f99e7736f2990e2515eedcde3264a338fd4a1fc716462cf06a8"
+    },
+    {
+      "recipe": {
+        "name": "ceiling-stone",
+        "source": "IMG_2543.HEIC",
+        "rect": [
+          0.6,
+          0.005,
+          0.73,
+          0.06
+        ],
+        "size": [
+          512,
+          512
+        ],
+        "assembly": "mirror",
+        "brightness": 0.65,
+        "normalStrength": 0.5
+      },
+      "sourceSha256": "d74104cee50b87872a5021f460d068fce65d469e47848e53712f5c99fac3b0fe",
+      "orientedSourceSize": [
+        4032,
+        3024
+      ],
+      "textureSha256": "11f545864381ff90839128e860b65e7311641a1782c427e6bfe2503aa6e8aee1",
+      "normalSha256": "c2df0d25eb204c5176a94e4f6ffbf393713b2eaaf8f49b802a1e7d850184f61d"
+    },
+    {
+      "recipe": {
+        "name": "corridor-blue-stone",
+        "source": "IMG_7178.HEIC",
+        "rect": [
+          0.291,
+          0.015,
+          0.475,
+          0.245
+        ],
+        "size": [
+          1024,
+          512
+        ],
+        "assembly": "brick",
+        "normalStrength": 1.4
+      },
+      "sourceSha256": "7464f374523851b846703e93ac21d2549265febb44c045ee1da31a27e7d1ea97",
+      "orientedSourceSize": [
+        4032,
+        3024
+      ],
+      "textureSha256": "d7ef6d24e816ebb7011a7e5a3de18a65b470661716eed0c173bbdc9d335af02f",
+      "normalSha256": "f5143b9d5c0c18cbdcf75bda2e63760a2ff73c94ff211ff0ae9b6701196343e6"
+    },
+    {
+      "recipe": {
+        "name": "chair-oak",
+        "source": "IMG_7169.HEIC",
+        "rect": [
+          0.33,
+          0.095,
+          0.62,
+          0.13
+        ],
+        "size": [
+          512,
+          512
+        ],
+        "assembly": "mirror",
+        "normalStrength": 0.35
+      },
+      "sourceSha256": "16636262f9ccf16c376ec63a56a6a1a1b3009cbb8c7d990d4cd96f0f9889dd1c",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "2ec8484b863b7d65b21d4cbb7d9e2d0501f7f3492c261ee190fbfdc0e29f527b",
+      "normalSha256": "b4fe2ae60876634ac3c9aac8883ee2aa6358f1fcaf670367c2f053f2064687a5"
+    },
+    {
+      "recipe": {
+        "name": "black-leather",
+        "source": "IMG_7169.HEIC",
+        "rect": [
+          0.36,
+          0.555,
+          0.45,
+          0.59
+        ],
+        "size": [
+          512,
+          512
+        ],
+        "assembly": "mirror",
+        "brightness": 0.65,
+        "normalStrength": 0.3
+      },
+      "sourceSha256": "16636262f9ccf16c376ec63a56a6a1a1b3009cbb8c7d990d4cd96f0f9889dd1c",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "06b0a203ec96fbc27e4335019b563d887e0b232642d5f5c213326ddad57424ac",
+      "normalSha256": "789d8bf77ce3533fecd20665b6d4e77a2fc4a21d682c9d0b70f8c5b29fc64d46"
+    },
+    {
+      "recipe": {
+        "name": "desk-wood",
+        "source": "IMG_7171.HEIC",
+        "quad": [
+          [
+            0.65,
+            0.27
+          ],
+          [
+            0.86,
+            0.245
+          ],
+          [
+            0.86,
+            0.5
+          ],
+          [
+            0.65,
+            0.48
+          ]
+        ],
+        "size": [
+          512,
+          1024
+        ],
+        "assembly": "mirror",
+        "normalStrength": 0.4
+      },
+      "sourceSha256": "31f46ea3e78453588109ea0989d503231b8f2848357964568f3928399d6410a6",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "ef89ca0c88890a99e189afbe649a9d0d0df0035f69af6fabe81faab9b17c7eed",
+      "normalSha256": "cf984dc59d271e529b692c01f60585aef48cb06fe783d288fd855355a19f2918"
+    },
+    {
+      "recipe": {
+        "name": "desk-carving",
+        "source": "IMG_7171.HEIC",
+        "quad": [
+          [
+            0.012,
+            0.075
+          ],
+          [
+            0.325,
+            0.105
+          ],
+          [
+            0.32,
+            0.262
+          ],
+          [
+            0.012,
+            0.23
+          ]
+        ],
+        "size": [
+          1024,
+          512
+        ],
+        "assembly": "single",
+        "normalStrength": 1.0
+      },
+      "sourceSha256": "31f46ea3e78453588109ea0989d503231b8f2848357964568f3928399d6410a6",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "37461942670c13086947d07f387be2be48d0b0af79562452c9829b6beceb1040",
+      "normalSha256": "d84cba8bc14b655e7ee64871095610ab1a4ae4a2c9b152a7c027fc0b749c9608"
+    },
+    {
+      "recipe": {
+        "name": "fireplace-stone",
+        "source": "IMG_7175.HEIC",
+        "rect": [
+          0.36,
+          0.115,
+          0.66,
+          0.16
+        ],
+        "size": [
+          512,
+          512
+        ],
+        "assembly": "mirror",
+        "normalStrength": 1.0
+      },
+      "sourceSha256": "1788a216a20175693e6404346dce9eb92059b654b769b9a22d41ed99bbfe2953",
+      "orientedSourceSize": [
+        4032,
+        3024
+      ],
+      "textureSha256": "6847b2b99945a847a35ae7ec042d2fc50ebdcb4b4b22aa6285b3e95f591cd0d4",
+      "normalSha256": "c100b44fefdc710b08a1ccd74208f76b01e8d5d51bf4486111fdd473b66d538f"
+    },
+    {
+      "recipe": {
+        "name": "fireplace-relief",
+        "source": "IMG_7175.HEIC",
+        "quad": [
+          [
+            0.3,
+            0.35
+          ],
+          [
+            0.405,
+            0.325
+          ],
+          [
+            0.43,
+            0.775
+          ],
+          [
+            0.335,
+            0.818
+          ]
+        ],
+        "size": [
+          256,
+          1024
+        ],
+        "assembly": "single",
+        "normalStrength": 1.3
+      },
+      "sourceSha256": "1788a216a20175693e6404346dce9eb92059b654b769b9a22d41ed99bbfe2953",
+      "orientedSourceSize": [
+        4032,
+        3024
+      ],
+      "textureSha256": "8888e0201f0de9a60f362b14239fb22acfdbdc4855bfe9468f1e4edfd676fd1d",
+      "normalSha256": "f1ee6dc3106695cce3d59c50116570b50e7dbf6282250d5ab9153fde990c7cad"
+    },
+    {
+      "recipe": {
+        "name": "alice-white-planks",
+        "source": "IMG_2375.HEIC",
+        "quad": [
+          [
+            0.54636,
+            0.90165
+          ],
+          [
+            0.46221,
+            0.97315
+          ],
+          [
+            0.50091,
+            0.98665
+          ],
+          [
+            0.58506,
+            0.91515
+          ]
+        ],
+        "size": [
+          1152,
+          192
+        ],
+        "assembly": "single",
+        "rotateCounterclockwiseDegrees": 4.0,
+        "inkPreservingWhitePaint": {
+          "threshold": 115,
+          "white": [
+            241,
+            239,
+            231
+          ],
+          "black": [
+            30,
+            29,
+            27
+          ]
+        },
+        "normalStrength": 0.25
+      },
+      "sourceSha256": "f206ac42009b70c81ddee25242174cc259393a9423f19264cc069bfd626de41b",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "e84dca475112cc33cfcf63448200cfe29185a2624c851ba8a8c82d186b43d65b",
+      "normalSha256": "2312304484f7f40a85487e6c08b242e48b4c6d8007a1908443e1162b6f11ef94"
+    },
+    {
+      "recipe": {
+        "name": "alice-painted-wood",
+        "source": "IMG_2375.HEIC",
+        "rect": [
+          0.333,
+          0.725,
+          0.335,
+          0.735
+        ],
+        "size": [
+          256,
+          1024
+        ],
+        "assembly": "mirror",
+        "brightness": 1.5,
+        "normalStrength": 0.35
+      },
+      "sourceSha256": "f206ac42009b70c81ddee25242174cc259393a9423f19264cc069bfd626de41b",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "eccdac7e174e18029b356a41c956a6b055eb2d5532c7fca153f9d758be2e1e89",
+      "normalSha256": "f948f169660cb96350726d930936f968ca9c1c0cdc370842a295c2a7c3f74a20"
+    },
+    {
+      "recipe": {
+        "name": "alice-red-cloth",
+        "source": "IMG_2375.HEIC",
+        "quad": [
+          [
+            0.368875,
+            0.494375
+          ],
+          [
+            0.402375,
+            0.502875
+          ],
+          [
+            0.363875,
+            0.513375
+          ],
+          [
+            0.331875,
+            0.504375
+          ]
+        ],
+        "size": [
+          512,
+          512
+        ],
+        "assembly": "single",
+        "normalStrength": 0.3
+      },
+      "sourceSha256": "f206ac42009b70c81ddee25242174cc259393a9423f19264cc069bfd626de41b",
+      "orientedSourceSize": [
+        3024,
+        4032
+      ],
+      "textureSha256": "6d97e164ab071bb324c8db5b291683871bfaf114f3f669649cec615288c59061",
+      "normalSha256": "ee1d42aa92232a950fdc13a45ce7287597eabffb647a152f592f4b1dcbe913e8"
+    },
+    {
+      "recipe": {
+        "name": "chair-back-oak",
+        "source": "IMG_2377.HEIC",
+        "quad": [
+          [
+            0.723,
+            0.478
+          ],
+          [
+            0.825,
+            0.499
+          ],
+          [
+            0.823,
+            0.52
+          ],
+          [
+            0.721,
+            0.499
+          ]
+        ],
+        "size": [
+          512,
+          256
+        ],
+        "assembly": "mirror",
+        "normalStrength": 0.35
+      },
+      "sourceSha256": "462ad6e2d7637b8e822e25470e23903a0dd8aec8c5c90950b9eec03c999266f0",
+      "orientedSourceSize": [
+        4032,
+        3024
+      ],
+      "textureSha256": "91bee0bc0da5fc8bbbb9443547ad19df6f5229dd2450f35b8f8d6d264e77e698",
+      "normalSha256": "917296840f0fe6da9ff1ea3f931e74b63cf5e8824892a8142d79fd365d348465"
+    }
+  ]
+}
