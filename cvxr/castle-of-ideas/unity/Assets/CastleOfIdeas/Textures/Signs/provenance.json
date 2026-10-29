@@ -1,0 +1,27 @@
+{
+  "source": "Original text and deterministic Pillow typesetting; no external artwork",
+  "size": [
+    1920,
+    1080
+  ],
+  "fonts": [
+    {
+      "file": "STIXGeneral.otf",
+      "sha256": "5add3f3f2bd7fd897d2fa5ccbe468607c52111dc44cdfaaf2d851a574f5357a7"
+    },
+    {
+      "file": "NotoSansJP-Regular.otf",
+      "sha256": "3e8146c4ce0945f255cb9dbc12b392380af80bd117e0a60eae555c99c7e618da"
+    }
+  ],
+  "titleStyle": "Installed STIX General mathematical Fraktur glyphs (blackletter)",
+  "fontFilesRedistributed": false,
+  "text": [
+    "Welcome to",
+    "Castle of Ideas",
+    "ようこそ、アイデアの城へ",
+    "右へまっすぐ：魔法学校 講義室 →",
+    "この黒板の裏手：アリス 自習室"
+  ],
+  "outputSha256": "ba7a273a09a92fa3a5547c1e801e8f14067b57a5d155511410245c10a51ccb04"
+}

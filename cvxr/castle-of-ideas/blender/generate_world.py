@@ -135,7 +135,7 @@ def create_materials() -> None:
     material("MAT_SUB_ACCENT_BLUE", (0.43, 0.65, 0.72, 1), roughness=0.62)
     material("MAT_SUB_UPHOLSTERY_ROSE", (0.74, 0.43, 0.49, 1), roughness=0.78)
     material("MAT_CORRIDOR_WALL", (0.28, 0.24, 0.27, 1), roughness=0.72)
-    material("MAT_ELEVATOR_WOOD", (0.075, 0.028, 0.025, 1), roughness=0.42)
+    material("MAT_ELEVATOR_SILVER", (0.62, 0.65, 0.68, 1), roughness=0.28, metallic=0.85)
     material("MAT_ELEVATOR_CARPET", (0.018, 0.055, 0.11, 1), roughness=0.88)
     material("MAT_ELEVATOR_MIRROR", (0.2, 0.28, 0.34, 1), roughness=0.08, metallic=0.9)
     material("MAT_BLACKOUT", (0.008, 0.009, 0.012, 1), roughness=0.9)
@@ -329,6 +329,7 @@ def cylinder(
     *,
     vertices: int = 16,
     target_collection: str = "Architecture",
+    parent: bpy.types.Object | None = None,
     rotation=(0.0, 0.0, 0.0),
 ) -> bpy.types.Object:
     bpy.ops.mesh.primitive_cylinder_add(
@@ -338,6 +339,8 @@ def cylinder(
     obj.name = name
     obj.data.materials.append(MATERIALS[material_name])
     move_to_collection(obj, target_collection)
+    if parent:
+        obj.parent = parent
     bevel_modifier = obj.modifiers.new("Edge Softening", "BEVEL")
     bevel_modifier.width = 0.025
     bevel_modifier.segments = 2
@@ -420,7 +423,7 @@ def create_architecture(config: dict) -> None:
         "ELEVATOR_CEILING",
         (lift_center[0], lift_center[1], lift_height + floor_t / 2),
         (lift_width, lift_depth, floor_t),
-        "MAT_ELEVATOR_WOOD",
+        "MAT_ELEVATOR_SILVER",
         target_collection="Ceilings",
     )
     lift_ceiling.hide_render = False
@@ -438,7 +441,9 @@ def create_architecture(config: dict) -> None:
     wall_y("SUB_WALL_NORTH", sub["maxY"], sub["minX"], sub["maxX"], height, thickness, "MAT_SUB_WALL_IVORY")
     wall_x("SUB_WALL_WEST", sub["minX"], sub["minY"], sub["maxY"], height, thickness, "MAT_SUB_WALL_IVORY")
     sub_open = openings["corridorToSub"]
-    wall_y("SUB_WALL_SOUTH_WEST", sub["minY"], sub["minX"], sub_open["min"], height, thickness, "MAT_SUB_WALL_IVORY")
+    front_open = openings["corridorToSubFront"]
+    wall_y("SUB_WALL_SOUTH_FRONT", sub["minY"], sub["minX"], front_open["min"], height, thickness, "MAT_SUB_WALL_IVORY")
+    wall_y("SUB_WALL_SOUTH_WEST", sub["minY"], front_open["max"], sub_open["min"], height, thickness, "MAT_SUB_WALL_IVORY")
     wall_y("SUB_WALL_SOUTH_EAST", sub["minY"], sub_open["max"], sub["maxX"], height, thickness, "MAT_SUB_WALL_IVORY")
 
     # Full-height door heads close the gaps above the visible arch frames.
@@ -446,11 +451,14 @@ def create_architecture(config: dict) -> None:
     header_z = dims["doorHeight"] + header_height / 2
     box("MAIN_WALL_DOOR_HEADER", (main_open["wall"], (main_open["min"] + main_open["max"]) / 2, header_z), (thickness, main_open["max"] - main_open["min"], header_height), "MAT_MAIN_WALL_PLASTER", bevel=0)
     box("SUB_WALL_DOOR_HEADER", ((sub_open["min"] + sub_open["max"]) / 2, sub_open["wall"], header_z), (sub_open["max"] - sub_open["min"], thickness, header_height), "MAT_SUB_WALL_IVORY", bevel=0)
+    box("SUB_WALL_FRONT_DOOR_HEADER", ((front_open["min"] + front_open["max"]) / 2, front_open["wall"], header_z), (front_open["max"] - front_open["min"], thickness, header_height), "MAT_SUB_WALL_IVORY", bevel=0)
     # Independent surface layers let the hallway face stay blue stone while
     # the room face carries the white literary salon finish.
-    for suffix, x1, x2 in (("WEST", sub["minX"], sub_open["min"]), ("EAST", sub_open["max"], sub["maxX"])):
+    for suffix, x1, x2 in (("FRONT", sub["minX"], front_open["min"]), ("WEST", front_open["max"], sub_open["min"]), ("EAST", sub_open["max"], sub["maxX"])):
         wall_y(f"CORRIDOR_BLUE_SUB_FACE_{suffix}", sub["minY"] - thickness / 2 - 0.006, x1, x2, height, 0.012, "MAT_CORRIDOR_WALL")
     box("CORRIDOR_BLUE_SUB_HEADER", ((sub_open["min"] + sub_open["max"]) / 2, sub_open["wall"] - thickness / 2 - 0.006, header_z), (sub_open["max"] - sub_open["min"], 0.012, header_height), "MAT_CORRIDOR_WALL", bevel=0)
+    box("CORRIDOR_BLUE_SUB_FRONT_HEADER", ((front_open["min"] + front_open["max"]) / 2, front_open["wall"] - thickness / 2 - 0.006, header_z), (front_open["max"] - front_open["min"], 0.012, header_height), "MAT_CORRIDOR_WALL", bevel=0)
+    empty("DOOR_MAIN_CENTER", (main_open["wall"], (main_open["min"] + main_open["max"]) / 2, 1.6))
     box("CORRIDOR_BLUE_MAIN_HEADER", (main_open["wall"] - thickness / 2 - 0.006, (main_open["min"] + main_open["max"]) / 2, header_z), (0.012, main_open["max"] - main_open["min"], header_height), "MAT_CORRIDOR_WALL", bevel=0)
     wall_x("SUB_WALL_EAST_IVORY_FACE", sub["maxX"] - thickness / 2 - 0.006, sub["minY"], sub["maxY"], height, 0.012, "MAT_SUB_WALL_IVORY")
 
@@ -467,7 +475,7 @@ def create_architecture(config: dict) -> None:
         lift["maxY"],
         lift_height,
         thickness,
-        "MAT_ELEVATOR_WOOD",
+        "MAT_ELEVATOR_SILVER",
     )
     wall_x(
         "ELEVATOR_WALL_EAST",
@@ -476,7 +484,7 @@ def create_architecture(config: dict) -> None:
         lift["maxY"],
         lift_height,
         thickness,
-        "MAT_ELEVATOR_WOOD",
+        "MAT_ELEVATOR_SILVER",
     )
     wall_y(
         "ELEVATOR_WALL_BACK",
@@ -485,7 +493,7 @@ def create_architecture(config: dict) -> None:
         lift["maxX"],
         lift_height,
         thickness,
-        "MAT_ELEVATOR_WOOD",
+        "MAT_ELEVATOR_SILVER",
     )
 
     # Keep the entrance visibly open for the arrival shot. Closed targets are
@@ -494,13 +502,13 @@ def create_architecture(config: dict) -> None:
         "ELEVATOR_DOOR_LEFT_OPEN",
         (16.52, 1.42 + lift_y_offset, 1.15),
         (0.48, 0.12, 2.3),
-        "MAT_MAIN_METAL",
+        "MAT_ELEVATOR_SILVER",
     )
     box(
         "ELEVATOR_DOOR_RIGHT_OPEN",
         (18.48, 1.42 + lift_y_offset, 1.15),
         (0.48, 0.12, 2.3),
-        "MAT_MAIN_METAL",
+        "MAT_ELEVATOR_SILVER",
     )
     empty(
         "ELEVATOR_DOOR_LEFT_CLOSED",
@@ -518,36 +526,13 @@ def create_architecture(config: dict) -> None:
         target_collection="Gimmicks",
     )["castle_of_ideas_role"] = "door-trigger"
 
-    # Cabin paneling bridges the dark lecture hall and bright literary salon.
-    box(
-        "ELEVATOR_BACK_MIRROR",
-        (17.5, lift["minY"] + 0.11, 1.75),
-        (1.55, 0.06, 1.75),
-        "MAT_ELEVATOR_MIRROR",
-    )
-    for x in (16.32, 17.05, 17.95, 18.68):
-        box(
-            f"ELEVATOR_BACK_TRIM_{int(x * 100):04d}",
-            (x, lift["minY"] + 0.075, 1.65),
-            (0.055, 0.07, 2.7),
-            "MAT_MAIN_METAL",
-            bevel=0.01,
-        )
-    for side, x in (("W", lift["minX"] + 0.11), ("E", lift["maxX"] - 0.11)):
-        for index, y in enumerate((-0.95, -0.2, 0.55), start=1):
-            box(
-                f"ELEVATOR_PANEL_{side}_{index:02d}",
-                (x, y + lift_y_offset, 1.5),
-                (0.07, 0.62, 2.45),
-                "MAT_ELEVATOR_WOOD",
-                bevel=0.035,
-            )
+    # Plain silver cabin with handrails; no decorative paneling or controls.
     cylinder(
         "ELEVATOR_RAIL_BACK",
         (17.5, lift["minY"] + 0.24, 1.0),
         0.035,
         2.0,
-        "MAT_MAIN_METAL",
+        "MAT_ELEVATOR_SILVER",
         rotation=(0.0, math.pi / 2, 0.0),
     )
     cylinder(
@@ -555,7 +540,7 @@ def create_architecture(config: dict) -> None:
         (lift["minX"] + 0.24, lift_y_offset, 1.0),
         0.035,
         2.2,
-        "MAT_MAIN_METAL",
+        "MAT_ELEVATOR_SILVER",
         rotation=(math.pi / 2, 0.0, 0.0),
     )
     cylinder(
@@ -563,24 +548,9 @@ def create_architecture(config: dict) -> None:
         (lift["maxX"] - 0.24, lift_y_offset, 1.0),
         0.035,
         2.2,
-        "MAT_MAIN_METAL",
+        "MAT_ELEVATOR_SILVER",
         rotation=(math.pi / 2, 0.0, 0.0),
     )
-    box(
-        "ELEVATOR_CONTROL_PANEL",
-        (lift["maxX"] - 0.115, 0.55 + lift_y_offset, 1.45),
-        (0.075, 0.55, 0.9),
-        "MAT_MAIN_METAL",
-        bevel=0.035,
-    )
-    for index, z in enumerate((1.2, 1.45, 1.7), start=1):
-        box(
-            f"ELEVATOR_BUTTON_{index:02d}",
-            (lift["maxX"] - 0.065, 0.48 + lift_y_offset, z),
-            (0.035, 0.13, 0.13),
-            "MAT_LIGHT_COOL",
-            bevel=0.025,
-        )
     box(
         "ELEVATOR_CEILING_LIGHT",
         (17.5, lift_y_offset, lift_height - 0.08),
@@ -591,34 +561,10 @@ def create_architecture(config: dict) -> None:
     )
     empty(
         "ELEVATOR_DING_AUDIO",
-        (17.5, 1.2 + lift_y_offset, 2.65),
+        (17.5, 1.2 + lift_y_offset, 2.4),
         target_collection="Gimmicks",
     )["castle_of_ideas_role"] = "audio-source-placeholder"
 
-    create_arch_frame(
-        "ARCH_MAIN_CORRIDOR",
-        (main_open["wall"], (main_open["min"] + main_open["max"]) / 2, 0.0),
-        main_open["max"] - main_open["min"],
-        dims["doorHeight"],
-        "x",
-        "MAT_MAIN_WOOD",
-    )
-    create_arch_frame(
-        "ARCH_CORRIDOR_SUB",
-        ((sub_open["min"] + sub_open["max"]) / 2, sub_open["wall"], 0.0),
-        sub_open["max"] - sub_open["min"],
-        dims["doorHeight"],
-        "y",
-        "MAT_CORRIDOR_WALL",
-    )
-    create_arch_frame(
-        "ARCH_ELEVATOR",
-        ((lift_open["min"] + lift_open["max"]) / 2, lift_open["wall"], 0.0),
-        lift_open["max"] - lift_open["min"],
-        dims["doorHeight"],
-        "y",
-        "MAT_MAIN_METAL",
-    )
 
     # Dark-academia structural rhythm: timber pilasters and beams.
     main_center_x = (main["minX"] + main["maxX"]) / 2
@@ -629,6 +575,8 @@ def create_architecture(config: dict) -> None:
         pier_depth = (bottom - top) / (py1 - py0) * main_depth
         y = main["maxY"] - ((top + bottom) / 2 - py0) / (py1 - py0) * main_depth
         for side, x in (("W", main["minX"] + pier_width / 2), ("E", main["maxX"] - pier_width / 2)):
+            if side == "W" and index == 1:
+                continue  # Clear the entrance-side pillar at the user's request.
             fireplace = config["fireplace"]
             if side == "W" and abs(y - fireplace["center"][1]) < (pier_depth + fireplace["width"]) / 2:
                 continue
@@ -638,7 +586,7 @@ def create_architecture(config: dict) -> None:
             box(f"MAIN_PILASTER_{side}_{index:02d}", (x, y, height / 2), (pier_width, pier_depth, height), "MAT_MAIN_WALL_PLASTER", bevel=0)
     for index in range(4):
         y = main["minY"] + 1.2 + index * (main_depth - 2.4) / 3
-        box(f"MAIN_CEILING_BEAM_{index:02d}", (main_center_x, y, height - 0.14), (main["maxX"] - main["minX"] - 0.5, 0.25, 0.28), "MAT_MAIN_CEILING_STONE", target_collection="Ceilings")
+        box(f"MAIN_CEILING_BEAM_{index:02d}", (main_center_x, y, height - 0.35), (main["maxX"] - main["minX"] - 0.5, 0.25, 0.7), "MAT_MAIN_CEILING_STONE", target_collection="Ceilings", bevel=0)
 
 
 
@@ -652,8 +600,7 @@ def create_table(name: str, center, size, style: str) -> bpy.types.Object:
     if style == "main":
         # Front and side panels, stepped cornice and bun feet observed in the
         # supplied desk photographs. Omit the photographed letter medallion.
-        for suffix, z, extra, thickness in (("Cornice", height - 0.08, 0.04, 0.07), ("Plinth", 0.16, 0.06, 0.09)):
-            box(f"{name}_{suffix}", (0, 0, z), (width, depth + extra, thickness), mat, target_collection="Furniture", parent=root, bevel=0.015)
+        box(f"{name}_Cornice", (0, 0, height - 0.08), (width - 0.04, depth + 0.04, 0.07), mat, target_collection="Furniture", parent=root, bevel=0.015)
         box(f"{name}_FrontPanel", (0, depth / 2 - 0.05, height / 2 + 0.04), (width - 0.12, 0.09, height - 0.2), mat, target_collection="Furniture", parent=root)
         box(f"{name}_FloralFrieze", (0, depth / 2 + 0.005, height - 0.22), (width - 0.18, 0.035, 0.19), "MAT_DESK_CARVING", target_collection="Furniture", parent=root, bevel=0.005)
         for side in (-1, 1):
@@ -794,9 +741,10 @@ def create_fireplace(config: dict) -> None:
     data = config["fireplace"]
     x, y, _ = data["center"]
     # The declared width is the complete footprint, including the hearth.
-    width, height, depth = data["width"] - 0.25, data["height"], data["depth"]
+    width, height, depth = data["width"] - 0.25, 1.42, data["depth"]
     # Local front is -Y; rotate it toward +X on the mirrored corridor-side wall.
     root = empty("MAIN_FIREPLACE", (x, y, 0), math.pi / 2, target_collection="Furniture")
+    root.scale.z = data["height"] / height
     root["dimension_status"] = data["dimensionStatus"]
     def piece(name, location, size, mat="MAT_FIREPLACE_STONE"):
         return box(f"FIREPLACE_{name}", location, size, mat, parent=root, target_collection="Furniture", bevel=0.018)
@@ -881,7 +829,9 @@ def create_alice_wall_art(config: dict) -> None:
     ]
     # South wall reads right-to-left in world X when seen from inside.
     for suffix, left, right, bottom, top in (
-        ("LEFT", b["minX"], opening["min"], 0, height),
+        ("FRONT", b["minX"], config["openings"]["corridorToSubFront"]["min"], 0, height),
+        ("LEFT", config["openings"]["corridorToSubFront"]["max"], opening["min"], 0, height),
+        ("FRONT_HEADER", config["openings"]["corridorToSubFront"]["min"], config["openings"]["corridorToSubFront"]["max"], config["dimensions"]["doorHeight"], height),
         ("RIGHT", opening["max"], b["maxX"], 0, height),
         ("HEADER", opening["min"], opening["max"], config["dimensions"]["doorHeight"], height),
     ):
@@ -920,15 +870,15 @@ def create_screen(name: str, screen: dict) -> None:
         ):
             box(f"SCREEN_{name}_FRAME_{suffix}", (sx, y - 0.02, sz), size, frame_mat, target_collection="Screens", bevel=0.02)
     else:
-        box(f"SCREEN_{name}_BACKING", (x, y, z), (0.08, width, height), "MAT_BLACKOUT", target_collection="Screens", bevel=0.01)
-        surface_offset = -0.041 if faces == "west" else 0.041
+        box(f"SCREEN_{name}_BACKING", (x, y, z), (0.02, width, height), "MAT_BLACKOUT", target_collection="Screens", bevel=0)
+        surface_offset = -0.011 if faces == "west" else 0.011
         video_surface(f"SCREEN_{name}_SURFACE", (x + surface_offset, y, z), width, height, faces, "MAT_SCREEN_PLACEHOLDER")
-        for suffix, sy, sz, size in (
+        for suffix, sy, sz, size in (() if name == "SUB" else (
             ("LEFT", y - width / 2 - 0.08, z, (0.14, 0.16, height + 0.32)),
             ("RIGHT", y + width / 2 + 0.08, z, (0.14, 0.16, height + 0.32)),
             ("TOP", y, z + height / 2 + 0.08, (0.14, width + 0.32, 0.16)),
             ("BOTTOM", y, z - height / 2 - 0.08, (0.14, width + 0.32, 0.16)),
-        ):
+        )):
             box(f"SCREEN_{name}_FRAME_{suffix}", (x - 0.02, sy, sz), size, frame_mat, target_collection="Screens", bevel=0.02)
     surface = bpy.data.objects[f"SCREEN_{name}_SURFACE"]
     surface["castle_of_ideas_role"] = "video-surface"
@@ -943,21 +893,81 @@ def create_media_markers(config: dict) -> None:
     player["stream_slot"] = "program"
 
 
+def create_speakers_and_sign(config: dict) -> None:
+    for room in ("MAIN", "SUB"):
+        screen = config["screens"][room.lower()]
+        x,y,z = screen["center"]
+        for ch, sign in (("L",-1),("R",1)):
+            offset = sign * (screen["width"]/2 + .42)
+            center = (x+offset,y-.18,z) if room == "MAIN" else (x+.18,y+offset,z)
+            root = empty(f"SPEAKER_{room}_{ch}",center,0 if room == "MAIN" else math.pi/2,target_collection="Screens")
+            box(f"SPEAKER_{room}_{ch}_CABINET",(0,0,0),(.36,.22,.76),"MAT_BLACKOUT" if room == "MAIN" else "MAT_SUB_TRIM_WHITE",parent=root,target_collection="Screens")
+            for i,(h,r) in enumerate(((.18,.07),(-.13,.125))):
+                cylinder(f"SPEAKER_{room}_{ch}_DRIVER_{i}",(0,-.118,h),r,.02,"MAT_BLACKOUT",parent=root,rotation=(math.pi/2,0,0))
+            empty(f"SPEAKER_{room}_{ch}_AUDIO",(0,-.14,0),parent=root,target_collection="Gimmicks")
+    target = material("MAT_WELCOME_BOARD",(1,1,1,1),roughness=.9)
+    texture=target.node_tree.nodes.new("ShaderNodeTexImage")
+    texture.image=bpy.data.images.load(str(PROJECT_DIR/'unity/Assets/CastleOfIdeas/Textures/Signs/welcome-board.png'))
+    target.node_tree.links.new(texture.outputs['Color'],target.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
+    w,h = config['screens']['portal']['width'],config['screens']['portal']['height']
+    box('WELCOME_BOARD_BACKING',(17.5,5.475,1.5),(w,.025,h),'MAT_BLACKOUT',target_collection='Screens',bevel=0)
+    video_surface('WELCOME_BOARD_SURFACE',(17.5,5.461,1.5),w,h,'south','MAT_WELCOME_BOARD')
+
+
+def trim_coplanar_intersections() -> None:
+    """Give intersecting solid boxes a single owner for coincident faces.
+
+    Subtract only pairs sharing an outward plane and a volume. A 0.5-mm
+    clearance removes ambiguous depth fragments without moving visible parts.
+    Keep separate named meshes and source UVs for editing and CCK colliders.
+    """
+    from mathutils import Vector
+    objects=[o for o in bpy.data.objects if o.type=='MESH' and
+             ('_WALL_' in o.name or 'PILASTER_' in o.name or o.name.startswith('FIREPLACE_')
+              or (o.name.startswith('MAIN_TABLE_') and o.parent is not None))]
+    bpy.context.view_layer.update()
+    for obj in objects:
+        bpy.context.view_layer.objects.active = obj
+        for modifier in list(obj.modifiers):
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+    def bounds(o):
+        pts=[o.matrix_world @ Vector(v) for v in o.bound_box]
+        return [(min(p[a] for p in pts),max(p[a] for p in pts)) for a in range(3)]
+    trimmed=[]
+    for i,a in enumerate(objects):
+        ba=bounds(a)
+        for b in objects[i+1:]:
+            bb=bounds(b)
+            if not all(min(ba[k][1],bb[k][1])-max(ba[k][0],bb[k][0]) > .00001 for k in range(3)):
+                continue
+            if not any(abs(ba[k][side]-bb[k][side]) < .00001 for k in range(3) for side in (0,1)):
+                continue
+            cutter=b.copy(); cutter.data=b.data.copy(); bpy.context.scene.collection.objects.link(cutter)
+            cutter.scale=tuple(s*(1+.001/max(.001,bb[k][1]-bb[k][0])) for k,s in enumerate(cutter.scale))
+            bpy.context.view_layer.update()
+            modifier=a.modifiers.new('Remove coincident internal surfaces','BOOLEAN')
+            modifier.operation='DIFFERENCE'; modifier.solver='EXACT'; modifier.object=cutter
+            bpy.context.view_layer.objects.active=a
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+            bpy.data.objects.remove(cutter,do_unlink=True)
+            trimmed.append([a.name,b.name])
+    path=PROJECT_DIR/'build/coplanar-trim-report.json'
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps({'clearanceMeters':.0005,'trimmedPairs':trimmed},indent=2)+'\n')
+
+
 def create_portal(portal: dict) -> None:
     width = portal["width"]
     height = portal["height"]
     x, y, z = portal["center"]
     faces = portal["faces"]
     reference = portal.get("physicalReference", {})
-    scale = portal.get("virtualScale", 1.0)
-    enclosure_width = reference.get("enclosureWidth", width + 0.1) * scale
-    enclosure_height = reference.get("enclosureHeight", height + 0.1) * scale
-    enclosure_depth = reference.get("enclosureDepth", 0.1) * scale
+    enclosure_width, enclosure_height, enclosure_depth = width, height, 0.02
     if faces not in ("north", "south", "east", "west"):
         raise ValueError(f"Unsupported portal direction: {faces}")
 
-    # Model the bridge as a replaceable 70-inch interactive display, matching
-    # the physical venue's BIG PAD scale rather than as an architectural gate.
+    # Thin, frameless wall display; the Unity build decorates all four edges
+    # with original procedural mist. Physical reference dimensions remain JSON.
     if faces in ("north", "south"):
         box(
             "PORTAL_BRIDGE_BACKING",
@@ -969,13 +979,6 @@ def create_portal(portal: dict) -> None:
         )
         surface_offset = -(enclosure_depth / 2 + 0.001) if faces == "south" else enclosure_depth / 2 + 0.001
         video_surface("PORTAL_BRIDGE_SURFACE", (x, y + surface_offset, z), width, height, faces, "MAT_PORTAL_PLACEHOLDER")
-        bezel_depth = enclosure_depth + 0.012
-        frame_specs = (
-            ("LEFT", (x - (width + enclosure_width) / 4, y, z), ((enclosure_width - width) / 2, bezel_depth, enclosure_height), "MAT_MAIN_METAL"),
-            ("RIGHT", (x + (width + enclosure_width) / 4, y, z), ((enclosure_width - width) / 2, bezel_depth, enclosure_height), "MAT_MAIN_METAL"),
-            ("TOP", (x, y, z + (height + enclosure_height) / 4), (width, bezel_depth, (enclosure_height - height) / 2), "MAT_MAIN_METAL"),
-            ("BOTTOM", (x, y, z - (height + enclosure_height) / 4), (width, bezel_depth, (enclosure_height - height) / 2), "MAT_MAIN_METAL"),
-        )
     else:
         box(
             "PORTAL_BRIDGE_BACKING",
@@ -987,24 +990,6 @@ def create_portal(portal: dict) -> None:
         )
         surface_offset = -(enclosure_depth / 2 + 0.001) if faces == "west" else enclosure_depth / 2 + 0.001
         video_surface("PORTAL_BRIDGE_SURFACE", (x + surface_offset, y, z), width, height, faces, "MAT_PORTAL_PLACEHOLDER")
-        bezel_depth = enclosure_depth + 0.012
-        frame_specs = (
-            ("LEFT", (x, y - (width + enclosure_width) / 4, z), (bezel_depth, (enclosure_width - width) / 2, enclosure_height), "MAT_MAIN_METAL"),
-            ("RIGHT", (x, y + (width + enclosure_width) / 4, z), (bezel_depth, (enclosure_width - width) / 2, enclosure_height), "MAT_MAIN_METAL"),
-            ("TOP", (x, y, z + (height + enclosure_height) / 4), (bezel_depth, width, (enclosure_height - height) / 2), "MAT_MAIN_METAL"),
-            ("BOTTOM", (x, y, z - (height + enclosure_height) / 4), (bezel_depth, width, (enclosure_height - height) / 2), "MAT_MAIN_METAL"),
-        )
-
-    frame_offset = {"south": (0, -0.004, 0), "north": (0, 0.004, 0), "west": (-0.004, 0, 0), "east": (0.004, 0, 0)}[faces]
-    for suffix, position, size, material_name in frame_specs:
-        box(
-            f"PORTAL_BRIDGE_FRAME_{suffix}",
-            tuple(position[index] + frame_offset[index] for index in range(3)),
-            size,
-            material_name,
-            target_collection="Screens",
-            bevel=0.012,
-        )
 
     if reference.get("mount") == "floor-stand":
         inward = {"south": (0, -1), "north": (0, 1), "west": (-1, 0), "east": (1, 0)}[faces]
@@ -1237,7 +1222,7 @@ def export_fbx(path: Path) -> None:
     # exporter embed workstation absolute image paths in its Video records.
     export_materials = {}
     original_slots = []
-    textured_names = (*PHOTO_TEXTURES, *LITERATURE_TEXTURES)
+    textured_names = (*PHOTO_TEXTURES, *LITERATURE_TEXTURES, 'MAT_WELCOME_BOARD')
     for name in textured_names:
         MATERIALS[name].name = name + "_PHOTO_SOURCE"
         plain = bpy.data.materials.new(name)
@@ -1301,6 +1286,8 @@ def main() -> None:
     create_screen("SUB", config["screens"]["sub"])
     create_media_markers(config)
     create_portal(config["screens"]["portal"])
+    create_speakers_and_sign(config)
+    trim_coplanar_intersections()
     create_lighting(config)
     create_markers(config)
     add_preview_camera(config)

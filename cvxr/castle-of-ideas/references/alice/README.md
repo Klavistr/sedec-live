@@ -16,6 +16,13 @@ domain in the USA. The original authors are Lewis Carroll (1832–1898) and John
 Tenniel (1820–1914). Use only these historical text/illustration sources, not modern
 adaptations, translations, or the venue's modern illustrated wallpaper.
 
+Rechecked 2026-10-29: the linked eBook 11 and 114 catalog entries still identify
+these inputs as public domain in the USA. In Japan the historical authors'
+death dates are also well beyond the protection period, including wartime
+extensions; see the [Agency for Cultural Affairs explanation](https://www.bunka.go.jp/seisaku/chosakuken/hokaisei/kantaiheiyo_chosakuken/1411890.html).
+This conclusion concerns Carroll's original English text and Tenniel's original
+drawings, not later translations, adaptations or newly drawn illustrations.
+
 Modifications: the illustrations are converted to a dark-ink/cream-paper palette
 and proportionally resized without inventing content. Text excerpts are reflowed
 and typeset separately in the operator-selected **Hoefler Text** installed on the

@@ -142,8 +142,15 @@ namespace CastleOfIdeas.Editor
             Render("unity-alice-interior", new Vector3(salon.min.x + 0.65f, 1.65f, salon.center.z), new Vector3(salonScreen.x, 1.65f, salonScreen.z), 76f);
             Render("unity-alice-rear", new Vector3(salon.max.x - 0.8f, 1.65f, salon.center.z), new Vector3(salon.min.x, 1.65f, salon.center.z), 76f);
             var arrival = FindDeepChild(root, "RESPAWN_SAFE_CORRIDOR").position;
-            var entrance = FindDeepChild(root, "ARCH_MAIN_CORRIDOR_Lintel").position;
+            var entrance = FindDeepChild(root, "DOOR_MAIN_CENTER").position;
             Render("unity-corridor", arrival + new Vector3(1.8f, 1.6f, 0), new Vector3(entrance.x, 1.6f, entrance.z), 75f);
+            var welcome = FindDeepChild(root,"WELCOME_BOARD_SURFACE").position;
+            Render("unity-welcome",new Vector3(welcome.x,1.55f,-2.7f),welcome,72f);
+            Render("unity-elevator",new Vector3(welcome.x,1.55f,-3.8f),new Vector3(welcome.x,1.3f,-1.3f),75f);
+            var portal = FindDeepChild(root,"PORTAL_BRIDGE_SURFACE").position;
+            foreach (var ps in FindDeepChild(root,"PORTAL_MIST").GetComponentsInChildren<ParticleSystem>()) ps.Simulate(2,true,true,true);
+            Render("unity-portal",portal+Vector3.right*3.2f,portal,72f);
+            foreach (var ps in FindDeepChild(root,"PORTAL_MIST").GetComponentsInChildren<ParticleSystem>()) ps.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             fire.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             Debug.Log("Castle of Ideas Unity interior previews rendered.");
         }
@@ -192,6 +199,8 @@ namespace CastleOfIdeas.Editor
             );
             CreateUnityLights(worldRoot.transform);
             CreateFireplaceEffect(worldRoot.transform);
+            CreatePortalMist(worldRoot.transform);
+            ConfigureWelcomeBoard(worldRoot.transform);
             CreateSetupNotes(worldRoot.transform);
 
             EnsureAssetFolder("Assets/CastleOfIdeas/Scenes");
@@ -399,16 +408,15 @@ namespace CastleOfIdeas.Editor
             {
                 errors.Add("The program player must not contain a baked receiver URL.");
             }
-            var customAudioSource = programPlayer == null
-                ? null
-                : GetFieldValue(programPlayer, "customAudioSource") as AudioSource;
-            if (
-                customAudioSource == null
-                || customAudioSource.outputAudioMixerGroup == null
-                || customAudioSource.spatialBlend != 0f
-            )
+            var speakers = GetFieldValue(programPlayer, "roomScaleAudioSources") as System.Collections.IList;
+            if (speakers == null || speakers.Count != 4
+                || GetFieldValue(programPlayer, "audioPlaybackMode").ToString() != "RoomScale")
+                errors.Add("The single program receiver must feed four spatial channel speakers.");
+            else foreach (var speaker in speakers)
             {
-                errors.Add("The program player does not use the 2D ProgramAudio mixer path.");
+                var source = GetFieldValue(speaker, "audioSource") as AudioSource;
+                if (source == null || source.spatialBlend != 1f || source.volume != 1f || source.outputAudioMixerGroup != null)
+                    errors.Add("A speaker must preserve unity gain and use native spatial attenuation.");
             }
             var programTexture = programPlayer == null
                 ? null
@@ -464,12 +472,36 @@ namespace CastleOfIdeas.Editor
                 var ceiling = FindDeepChild(worldRoot.transform, room + "_CEILING");
                 var ceilingRenderer = ceiling?.GetComponent<Renderer>();
                 if (floor == null || ceilingRenderer == null || ceiling.GetComponent<BoxCollider>() == null
-                    || Mathf.Abs(ceilingRenderer.bounds.min.y - floor.bounds.max.y - 3f) > 0.03f)
-                    errors.Add($"{room} must have a solid ceiling at 3 metres above its floor.");
+                    || Mathf.Abs(ceilingRenderer.bounds.min.y - floor.bounds.max.y - (room == "ELEVATOR" ? 2.6f : 3f)) > 0.03f)
+                    errors.Add($"{room} ceiling height is incorrect.");
             }
             var fire = FindDeepChild(worldRoot.transform, "FIREPLACE_FIRE")?.GetComponent<ParticleSystem>();
             if (fire == null || !fire.main.playOnAwake || fire.GetComponent<Renderer>().sharedMaterial?.shader.name != "CastleOfIdeas/AnalyticFlame")
                 errors.Add("The fireplace must contain native animated fire particles.");
+            var mantel = FindDeepChild(worldRoot.transform,"FIREPLACE_MANTEL_TOP").GetComponent<Renderer>();
+            if (Mathf.Abs(mantel.bounds.max.y - 1f) > .015f)
+                errors.Add("The complete fireplace must be 1 metre tall.");
+            foreach (var beam in worldRoot.GetComponentsInChildren<Renderer>().Where(r=>r.name.StartsWith("MAIN_CEILING_BEAM_")))
+                if (Mathf.Abs(beam.bounds.min.y - 2.3f) > .015f)
+                    errors.Add("The lecture beam underside must be at 2.3 metres: " + beam.name);
+            foreach (var node in worldRoot.GetComponentsInChildren<Transform>(true))
+                if (node.name.StartsWith("ARCH_") || node.name.StartsWith("SCREEN_SUB_FRAME_")
+                    || node.name.StartsWith("PORTAL_BRIDGE_FRAME_") || node.name == "MAIN_PILASTER_W_01"
+                    || node.name == "ELEVATOR_CONTROL_PANEL" || node.name.StartsWith("ELEVATOR_BUTTON_")
+                    || (node.name.StartsWith("MAIN_TABLE_") && node.name.EndsWith("_Plinth")))
+                    errors.Add("Removed geometry remains: " + node.name);
+            var board = FindDeepChild(worldRoot.transform,"WELCOME_BOARD_SURFACE").GetComponent<Renderer>();
+            if (Mathf.Abs(board.bounds.size.x - 3.08f) > .01f || Mathf.Abs(board.bounds.size.y - 1.7325f) > .01f)
+                errors.Add("The welcome board must match the portal display dimensions.");
+            foreach (var headerName in new[] {"MAIN_WALL_DOOR_HEADER","SUB_WALL_DOOR_HEADER","SUB_WALL_FRONT_DOOR_HEADER"})
+            {
+                var bounds = FindDeepChild(worldRoot.transform,headerName).GetComponent<Renderer>().bounds;
+                if (Mathf.Abs((headerName.StartsWith("MAIN") ? bounds.size.z : bounds.size.x) - 1.2f) > .01f)
+                    errors.Add("An entrance must have 1.2 metres of clear width: " + headerName);
+            }
+            foreach (var side in new[] {"TOP","BOTTOM","LEFT","RIGHT"})
+                if (FindDeepChild(worldRoot.transform,"PORTAL_MIST_"+side)?.GetComponent<ParticleSystem>() == null)
+                    errors.Add("Missing purple portal effect: " + side);
             var photographicMaterials = worldRoot.GetComponentsInChildren<Renderer>(true)
                 .SelectMany(renderer => renderer.sharedMaterials)
                 .Where(material => material != null && AssetDatabase.GetAssetPath(material).Contains("/Photo-"))
@@ -532,6 +564,8 @@ namespace CastleOfIdeas.Editor
             var configuredSeatCount = 0;
             foreach (var seatMarker in seatMarkers)
             {
+                if (Vector3.Dot(seatMarker.up, Vector3.up) < 0.999f || Mathf.Abs(seatMarker.forward.y) > 0.001f)
+                    errors.Add("Seat anchor retains an FBX axis tilt: " + seatMarker.name);
                 var chair = seatMarker.parent;
                 var interactable = chair == null ? null : chair.GetComponent(interactableType);
                 if (
@@ -758,7 +792,7 @@ namespace CastleOfIdeas.Editor
                 throw new InvalidOperationException("Fireplace flame anchor is missing.");
             var effect = FindOrCreate(root, "FIREPLACE_FIRE");
             effect.transform.position = anchor.position;
-            effect.transform.rotation = Quaternion.identity;
+            effect.transform.rotation = Quaternion.LookRotation(Vector3.left, Vector3.up);
             var shader = Shader.Find("CastleOfIdeas/AnalyticFlame");
             if (shader == null)
                 throw new InvalidOperationException("Analytic flame shader is missing.");
@@ -808,11 +842,83 @@ namespace CastleOfIdeas.Editor
             var light = glow.GetComponent<Light>();
             if (!light)
                 light = glow.AddComponent<Light>();
-            light.type = LightType.Point;
+            // Aim into the lecture room, away from the shared Alice wall.
+            // The cone also prevents rear spill when the client disables shadows.
+            glow.transform.rotation = Quaternion.LookRotation(Vector3.left, Vector3.up);
+            light.type = LightType.Spot;
+            light.spotAngle = 140f;
+            light.innerSpotAngle = 100f;
+            light.renderMode = LightRenderMode.ForcePixel;
             light.color = new Color(1, 0.30f, 0.035f);
             light.intensity = 1.1f;
             light.range = 3.0f;
-            light.shadows = LightShadows.None;
+            light.shadows = LightShadows.Hard;
+            light.shadowBias = 0.02f;
+            light.shadowNormalBias = 0.03f;
+        }
+
+        private static void CreatePortalMist(Transform root)
+        {
+            var surface = FindDeepChild(root, "PORTAL_BRIDGE_SURFACE");
+            var frame = FindOrCreate(root, "PORTAL_MIST").transform;
+            frame.position = surface.position + Vector3.right * 0.04f;
+            frame.rotation = Quaternion.LookRotation(Vector3.right, Vector3.up);
+            var path = $"{GeneratedPath}/PortalMist.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!material)
+            {
+                material = new Material(Shader.Find("CastleOfIdeas/PortalMist"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            foreach (var spec in new[] {
+                ("TOP", new Vector3(0,.86625f,0), new Vector3(3.08f,.035f,.02f)),
+                ("BOTTOM", new Vector3(0,-.86625f,0), new Vector3(3.08f,.035f,.02f)),
+                ("LEFT", new Vector3(-1.54f,0,0), new Vector3(.035f,1.7325f,.02f)),
+                ("RIGHT", new Vector3(1.54f,0,0), new Vector3(.035f,1.7325f,.02f)) })
+            {
+                var go = FindOrCreate(frame, "PORTAL_MIST_" + spec.Item1);
+                go.transform.localPosition = spec.Item2;
+                var ps = go.GetComponent<ParticleSystem>();
+                if (!ps) ps = go.AddComponent<ParticleSystem>();
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                var main = ps.main;
+                main.loop = true; main.playOnAwake = true; main.prewarm = true;
+                main.duration = 3; main.maxParticles = 80;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(1.1f,2.2f);
+                main.startSpeed = 0;
+                main.startSize = new ParticleSystem.MinMaxCurve(.15f,.4f);
+                main.startRotation = new ParticleSystem.MinMaxCurve(0,6.28f);
+                var emission=ps.emission; emission.rateOverTime=32;
+                var shape=ps.shape; shape.shapeType=ParticleSystemShapeType.Box; shape.scale=spec.Item3;
+                var velocity=ps.velocityOverLifetime; velocity.enabled=true;
+                velocity.x=new ParticleSystem.MinMaxCurve(-.04f,.04f);
+                velocity.y=new ParticleSystem.MinMaxCurve(.02f,.12f);
+                velocity.z=new ParticleSystem.MinMaxCurve(-.015f,.015f);
+                var color=ps.colorOverLifetime; color.enabled=true;
+                var gradient=new Gradient();
+                gradient.SetKeys(new[] {new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},
+                    new[] {new GradientAlphaKey(0,0),new GradientAlphaKey(1,.2f),new GradientAlphaKey(0,1)});
+                color.color=gradient;
+                var renderer=ps.GetComponent<ParticleSystemRenderer>(); renderer.sharedMaterial=material;
+                renderer.renderMode=ParticleSystemRenderMode.Billboard;
+                renderer.shadowCastingMode=ShadowCastingMode.Off;
+            }
+        }
+
+        private static void ConfigureWelcomeBoard(Transform root)
+        {
+            const string texturePath = "Assets/CastleOfIdeas/Textures/Signs/welcome-board.png";
+            var importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+            importer.mipmapEnabled = true;
+            importer.streamingMipmaps = true;
+            importer.maxTextureSize = 2048;
+            importer.SaveAndReimport();
+            var path = $"{GeneratedPath}/WelcomeBoard.mat";
+            var material=AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!material) { material=new Material(Shader.Find("Unlit/Texture")); AssetDatabase.CreateAsset(material,path); }
+            material.mainTexture=AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            EditorUtility.SetDirty(material);
+            FindDeepChild(root,"WELCOME_BOARD_SURFACE").GetComponent<Renderer>().sharedMaterial=material;
         }
 
         private static void ConfigureLiteratureMaterials(GameObject model)
@@ -935,25 +1041,32 @@ namespace CastleOfIdeas.Editor
 
         private static void ConfigureProgramAudio(Component player)
         {
-            var mixerGroup = EnsureProgramAudioMixer();
             var audioObject = GameObject.Find("PROGRAM_AUDIO_OUTPUT");
-            if (audioObject == null)
-            {
-                audioObject = new GameObject("PROGRAM_AUDIO_OUTPUT");
-            }
-            var source = audioObject.GetComponent<AudioSource>();
-            if (source == null)
-            {
-                source = audioObject.AddComponent<AudioSource>();
-            }
-            source.playOnAwake = false;
-            source.loop = false;
-            source.spatialBlend = 0f;
-            source.volume = 1f;
-            source.outputAudioMixerGroup = mixerGroup;
-
-            TrySetEnumField(player, "audioPlaybackMode", "AudioSource");
-            TrySetField(player, "customAudioSource", source);
+            if (audioObject != null) UnityEngine.Object.DestroyImmediate(audioObject);
+            var outputs = CreateListForField(player, "roomScaleAudioSources");
+            var entryType = outputs.GetType().GetGenericArguments()[0];
+            foreach (var room in new[] { "MAIN", "SUB" })
+                foreach (var channel in new[] { "L", "R" })
+                {
+                    var anchor = FindDeepChild(player.transform.root, $"SPEAKER_{room}_{channel}_AUDIO");
+                    var source = anchor.GetComponent<AudioSource>();
+                    if (!source) source = anchor.gameObject.AddComponent<AudioSource>();
+                    source.playOnAwake = false;
+                    source.spatialBlend = 1f;
+                    source.volume = 1f;
+                    source.dopplerLevel = 0f;
+                    source.minDistance = 3f;
+                    source.maxDistance = 16f;
+                    source.rolloffMode = AudioRolloffMode.Logarithmic;
+                    source.outputAudioMixerGroup = null;
+                    var entry = Activator.CreateInstance(entryType);
+                    TrySetEnumField(entry, "type", channel == "L" ? "FrontLeft" : "FrontRight");
+                    TrySetField(entry, "audioSource", source);
+                    outputs.Add(entry);
+                }
+            TrySetEnumField(player, "audioPlaybackMode", "RoomScale");
+            TrySetField(player, "roomScaleAudioSources", outputs);
+            TrySetField(player, "customAudioSource", null);
             TrySetField(player, "playbackVolume", 1f);
             TrySetField(player, "interactiveUI", false);
             TrySetField(player, "autoplay", false);
@@ -1151,6 +1264,11 @@ namespace CastleOfIdeas.Editor
             Type operationType
         )
         {
+            // FBX empties retain Blender's -90-degree X axis conversion.
+            // CVR uses the marker's world up/forward directly for avatar IK.
+            var direction = interactable.name.EndsWith("_N") ? Vector3.forward : Vector3.back;
+            seatPoint.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            exitPoint.rotation = Quaternion.LookRotation(direction, Vector3.up);
             var action = Activator.CreateInstance(actionType);
             var operation = Activator.CreateInstance(operationType);
             TrySetEnumField(action, "actionType", "OnInteractDown");
@@ -1498,7 +1616,7 @@ namespace CastleOfIdeas.Editor
                 ("Main Warm Fill", Above("MAIN_FLOOR", 2.65f), new Color(1f, 0.78f, 0.55f), 1.6f, 12f),
                 ("Sub Soft Warm Fill", Above("SUB_FLOOR", 2.65f), new Color(1f, 0.95f, 0.87f), 1.8f, 12f),
                 ("Corridor Fill", Above("CORRIDOR_FLOOR", 2.65f), new Color(0.65f, 0.79f, 1f), 1.1f, 10f),
-                ("Elevator Cabin", Above("ELEVATOR_FLOOR", 2.75f), new Color(0.68f, 0.84f, 1f), 1.3f, 5f)
+                ("Elevator Cabin", Above("ELEVATOR_FLOOR", 2.45f), new Color(1f, 0.96f, 0.89f), 1.8f, 3.5f)
             };
             foreach (var definition in lights)
             {
