@@ -1,0 +1,6 @@
+{
+  "purpose": "Replaceable event-specific welcome sign; event branding is intentional on this sign only",
+  "titleLines": ["Welcome to", "Castle of Ideas"],
+  "directions": ["Lecture Hall: straight to your right", "Alice Study Room: behind this board"],
+  "programLines": ["Today's Program", "SEDEC", "Sexual Entertainment Developers Conference"]
+}

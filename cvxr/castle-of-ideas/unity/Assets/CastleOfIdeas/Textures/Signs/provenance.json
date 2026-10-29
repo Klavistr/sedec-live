@@ -10,8 +10,8 @@
       "sha256": "5add3f3f2bd7fd897d2fa5ccbe468607c52111dc44cdfaaf2d851a574f5357a7"
     },
     {
-      "file": "NotoSansJP-Regular.otf",
-      "sha256": "3e8146c4ce0945f255cb9dbc12b392380af80bd117e0a60eae555c99c7e618da"
+      "file": "Hoefler Text.ttc",
+      "sha256": "4e7f471379588b2e40a6e9a96407e0d03207b5185fd92b77481abb4c9eae0e80"
     }
   ],
   "titleStyle": "Installed STIX General mathematical Fraktur glyphs (blackletter)",
@@ -19,9 +19,11 @@
   "text": [
     "Welcome to",
     "Castle of Ideas",
-    "ようこそ、アイデアの城へ",
-    "右へまっすぐ：魔法学校 講義室 →",
-    "この黒板の裏手：アリス 自習室"
+    "Lecture Hall: straight to your right",
+    "Alice Study Room: behind this board",
+    "Today's Program",
+    "SEDEC",
+    "Sexual Entertainment Developers Conference"
   ],
-  "outputSha256": "ba7a273a09a92fa3a5547c1e801e8f14067b57a5d155511410245c10a51ccb04"
+  "outputSha256": "571b46d051a115cdfedf3738bd47c54bc50a8b8d7647f932af0c4a1a3d8dbfa3"
 }

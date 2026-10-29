@@ -87,12 +87,13 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertTrue(program["runtimeControls"]["autoplay"])
         self.assertEqual(program["runtimeControls"]["defaultVolumeDb"], 0.0)
 
-    def test_portal_is_scaffolded_without_committing_to_a_transport(self):
+    def test_portal_has_an_independent_optional_hls_receiver(self):
         portal = self.layout["mediaTopology"]["portalBridge"]
-        self.assertEqual(portal["playerCount"], 0)
+        self.assertEqual(portal["playerCount"], 1)
         self.assertEqual(portal["outputs"], ["portal"])
-        self.assertEqual(portal["status"], "scaffold-only")
-        self.assertEqual(portal["transport"], "to-be-validated")
+        self.assertEqual(portal["status"], "optional-build-time-url")
+        self.assertEqual(portal["transport"], "https-hls")
+        self.assertEqual(portal["configField"], "portalReceiverUrl")
 
     def test_portal_is_on_main_far_wall_at_big_pad_scale(self):
         dimensions = self.layout["dimensions"]["main"]
@@ -212,8 +213,12 @@ class WorldLayoutTest(unittest.TestCase):
 
     def test_two_alice_entrances_have_clear_measured_width(self):
         openings = self.layout["openings"]
-        for key in ("mainToCorridor", "corridorToSub", "corridorToSubFront"):
+        for key in ("corridorToSub", "corridorToSubFront"):
             self.assertAlmostEqual(openings[key]["max"]-openings[key]["min"],1.2)
+        corridor=self.layout["dimensions"]["corridor"]
+        self.assertEqual(openings["mainToCorridor"]["min"],corridor["minY"])
+        self.assertEqual(openings["mainToCorridor"]["max"],corridor["maxY"])
+        self.assertEqual(self.layout["dimensions"]["doorHeight"],2.4)
         self.assertLess(openings["corridorToSubFront"]["max"],openings["corridorToSub"]["min"])
         self.assertEqual(self.layout["fireplace"]["height"],1.0)
 
@@ -283,7 +288,10 @@ class WorldLayoutTest(unittest.TestCase):
             self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), digest)
 
     def test_generic_world_assets_do_not_contain_sedec_branding(self):
-        intentional_integration_notes = {Path("README.md")}
+        intentional_integration_notes = {
+            Path("README.md"), Path("design/welcome-board.json"),
+            Path("unity/Assets/CastleOfIdeas/Textures/Signs/provenance.json"),
+        }
         local_only_settings = {
             Path("streaming.local.json"),
             Path("streaming.local.json.meta"),

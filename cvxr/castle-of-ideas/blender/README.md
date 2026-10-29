@@ -25,9 +25,9 @@ make cvxr-world
 
 `preview/photo-review/` には元写真に切り出し枠と対角線、素材名を重ねたJPEGと一覧画像が出ます。人物などが写る元写真を含むためGit管理外です。写真素材の出典はUnityの `Textures/PhotoDerived/README.md` と同ディレクトリーの来歴JSONに記録しています。
 
-両室・廊下の天井下面は床から3 m、EVは2.6 m、講義室の梁下は2.3 mです。俯瞰レンダー中だけ天井を隠し、`.blend` 保存時とUnity向けFBXには天井を含めます。炎はBlenderでは静的な形状プレビュー、Unityでは標準Particle Systemと自作数式シェーダーで動きます。柱・壁・暖炉・机の同一平面を持つ交差部はBooleanで切り欠き、別名メッシュ・UVを保ちます。処理記録はGit管理外の `../build/coplanar-trim-report.json` に出力します。
+両室・廊下の天井下面は床から3 m、EVは2.6 m、講義室の梁は天井直付け30 cm角・梁下2.7 mです。入口高は2.4 mです。石壁の4列×2段の画像を3.2×1.2 mで反復し、各石材は80×60 cmです。高さのUVは床を原点に共有します。俯瞰レンダー中だけ天井を隠し、`.blend` 保存時とUnity向けFBXには天井を含めます。炎はBlenderでは静的な形状プレビュー、Unityでは標準Particle Systemと自作数式シェーダーで動きます。柱・壁・暖炉・机の同一平面を持つ交差部はBooleanで切り欠き、別名メッシュ・UVを保ちます。処理記録はGit管理外の `../build/coplanar-trim-report.json` に出力します。
 
-案内板はPillow環境で `create_welcome_board.py` を実行してからモデルを再生成します。Mac内蔵STIX Generalのフラクトゥール字形とローカルのNoto Sans JPでオリジナル文章を組み、`Textures/Signs/` に画像とフォント名・ハッシュを出力します。元フォントは配布しません。画像を差し替える場合は1920×1080の同名PNGを使えます。
+案内板は `../design/welcome-board.json` の英文をPillow環境の `create_welcome_board.py` で組んでから、モデルを再生成します。Mac内蔵STIX Generalのフラクトゥール字形とHoefler Textを使い、`Textures/Signs/` に画像とフォント名・ハッシュを出力します。元フォントは配布しません。画像を差し替える場合は1920×1080の同名PNGを使えます。スピーカーは単色の樹脂材質で、画像テクスチャは使いません。
 
 スクリプトを再実行すると `.blend` と FBX は上書きされます。Blender で直接行った変更を残す場合は、別名ファイルまたは別ブランチへ保存してください。
 

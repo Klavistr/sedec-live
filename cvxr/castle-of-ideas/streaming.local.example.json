@@ -1,3 +1,4 @@
 {
-  "receiverUrl": "https://example.invalid/live/viewer-key/index.m3u8"
+  "receiverUrl": "https://example.invalid/live/viewer-key/index.m3u8",
+  "portalReceiverUrl": ""
 }

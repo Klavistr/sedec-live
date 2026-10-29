@@ -121,6 +121,9 @@ namespace CastleOfIdeas.Editor
                     var visual = chair.Find("CHAIR_VISUAL");
                     var seat = chair.GetComponentsInChildren<Transform>(true).Single(t => t.name.EndsWith("_SeatPoint"));
                     var anchor = seat.position;
+                    if (Mathf.Abs(seat.position.y-chair.position.y-.44f)>.005f
+                        || Mathf.Abs(Vector3.Dot(seat.position-chair.position,seat.forward)-.2f)>.005f)
+                        errors.Add("Default-animation origin calibration is incorrect: " + chair.name);
                     var animator = chair.GetComponent<Animator>();
                     if (visual == null || animator == null || animator.runtimeAnimatorController == null)
                     {
