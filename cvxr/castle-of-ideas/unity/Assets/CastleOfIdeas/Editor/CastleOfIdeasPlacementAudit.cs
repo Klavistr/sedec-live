@@ -17,14 +17,28 @@ namespace CastleOfIdeas.Editor
         {
             EditorApplication.playModeStateChanged += state =>
             {
+                if (state == PlayModeStateChange.EnteredEditMode && SessionState.GetBool("CastleOfIdeas.BatchAudit", false))
+                {
+                    SessionState.SetBool("CastleOfIdeas.BatchAudit", false);
+                    EditorApplication.delayCall += () => EditorApplication.Exit(SessionState.GetInt("CastleOfIdeas.BatchAuditResult", 1));
+                    return;
+                }
                 if (state != PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(PlayAuditKey, false)) return;
                 SessionState.SetBool(PlayAuditKey, false);
                 EditorApplication.delayCall += () =>
                 {
-                    try { Run(); }
+                    try { Run(); SessionState.SetInt("CastleOfIdeas.BatchAuditResult", 0); }
+                    catch (Exception exception) { Debug.LogException(exception); SessionState.SetInt("CastleOfIdeas.BatchAuditResult", 1); }
                     finally { EditorApplication.isPlaying = false; }
                 };
             };
+        }
+
+        public static void RunBatch()
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity");
+            SessionState.SetBool("CastleOfIdeas.BatchAudit", true);
+            RunInPlayMode();
         }
 
         [MenuItem("Castle of Ideas/Audit Chair Motion In PlayMode")]
@@ -162,7 +176,7 @@ namespace CastleOfIdeas.Editor
                         if (Intersects(box, MeshBounds(pier))) errors.Add("Furniture crosses a plan pier: " + item.name + " / " + pier.name);
                     if (Intersects(box, MeshBounds(hearth))) errors.Add("Furniture crosses the hearth: " + item.name);
                 }
-                foreach (var side in new[] { "N", "E", "W", "S_LEFT", "S_RIGHT", "S_HEADER" })
+                foreach (var side in new[] { "N", "E", "W", "S_LEFT", "S_RIGHT", "S_HEADER", "S_FRONT", "S_FRONT_HEADER" })
                     if (!all.Any(t => t.name == "ALICE_WALLPAPER_" + side)) errors.Add("Missing wallpaper surface: " + side);
                 var east = MeshBounds(all.Single(t => t.name == "ALICE_WALLPAPER_E"));
                 var ivory = MeshBounds(all.Single(t => t.name == "SUB_WALL_EAST_IVORY_FACE"));

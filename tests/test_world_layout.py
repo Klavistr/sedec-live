@@ -77,7 +77,7 @@ class WorldLayoutTest(unittest.TestCase):
         program = self.layout["mediaTopology"]["programFeed"]
         self.assertEqual(program["playerCount"], 1)
         self.assertEqual(program["outputs"], ["main", "sub"])
-        self.assertEqual(program["audioMode"], "mixer-2d")
+        self.assertEqual(program["audioMode"], "room-scale-stereo-pairs")
         self.assertEqual(program["transport"], "https-hls")
         self.assertEqual(
             program["runtimeControls"]["receiverUrl"],
@@ -101,7 +101,7 @@ class WorldLayoutTest(unittest.TestCase):
         reference = portal["physicalReference"]
         self.assertEqual(portal["faces"], "west")
         self.assertEqual(opening["wall"], dimensions["minX"])
-        self.assertAlmostEqual(portal["center"][0], dimensions["maxX"] - 0.24)
+        self.assertAlmostEqual(portal["center"][0], dimensions["maxX"] - 0.12)
         self.assertAlmostEqual(portal["center"][1], 3.325)
         self.assertEqual(portal["virtualScale"], 2.0)
         self.assertEqual(reference["mount"], "wall")
@@ -183,12 +183,12 @@ class WorldLayoutTest(unittest.TestCase):
         lobby = self.layout["dimensions"]["elevatorLobby"]
         self.assertGreaterEqual(lobby["maxX"] - lobby["minX"], 2.4)
         self.assertGreaterEqual(lobby["maxY"] - lobby["minY"], 2.5)
-        self.assertGreaterEqual(lobby["height"], 3.0)
+        self.assertEqual(lobby["height"], 2.6)
 
     def test_displays_fit_below_the_three_meter_ceiling(self):
         height = self.layout["dimensions"]["wallHeight"]
         self.assertEqual(height, 3.0)
-        self.assertEqual(self.layout["dimensions"]["elevatorLobby"]["height"], height)
+        self.assertEqual(self.layout["dimensions"]["elevatorLobby"]["height"], 2.6)
         for screen in self.layout["screens"].values():
             self.assertLess(screen["center"][2] + screen["height"] / 2, height)
             self.assertGreater(screen["center"][2] - screen["height"] / 2, 0)
@@ -209,6 +209,20 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertAlmostEqual(fireplace["center"][1] - fireplace["width"] / 2 - dims["corridor"]["maxY"], 1.4)
         for row in self.layout["furniture"]["main"]["tableRows"]:
             self.assertGreater(row - 0.72 - 0.3, dims["corridor"]["maxY"])
+
+    def test_two_alice_entrances_have_clear_measured_width(self):
+        openings = self.layout["openings"]
+        for key in ("mainToCorridor", "corridorToSub", "corridorToSubFront"):
+            self.assertAlmostEqual(openings[key]["max"]-openings[key]["min"],1.2)
+        self.assertLess(openings["corridorToSubFront"]["max"],openings["corridorToSub"]["min"])
+        self.assertEqual(self.layout["fireplace"]["height"],1.0)
+
+    def test_original_welcome_sign_matches_its_provenance(self):
+        directory = WORLD_PATH / "unity/Assets/CastleOfIdeas/Textures/Signs"
+        provenance = json.loads((directory / "provenance.json").read_text())
+        self.assertEqual(provenance["size"],[1920,1080])
+        self.assertFalse(provenance["fontFilesRedistributed"])
+        self.assertEqual(hashlib.sha256((directory / "welcome-board.png").read_bytes()).hexdigest(),provenance["outputSha256"])
 
     def test_photo_textures_match_their_provenance(self):
         directory = WORLD_PATH / "unity/Assets/CastleOfIdeas/Textures/PhotoDerived"
