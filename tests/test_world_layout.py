@@ -1,5 +1,6 @@
 import json
 import hashlib
+import re
 import unittest
 from pathlib import Path
 
@@ -127,6 +128,23 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertIn("watch-castle-of-ideas-log.ps1", builder)
         self.assertIn("Player.log", builder)
         self.assertIn('$_ -notmatch ""\\[Cohtml\\]""', builder)
+
+    def test_windows_launcher_dispatch_is_outside_guard_blocks(self):
+        source = PREVIEW_BUILDER_PATH.read_text(encoding="utf-8")
+        method = source.split("private static string CreateWindowsLauncher", 1)[1]
+        launcher = method.split('return $@"',1)[1].split('";',1)[0].replace('""','"')
+        depth, dispatches = 0, 0
+        for line in launcher.splitlines():
+            if "chilloutvr://" in line:
+                self.assertEqual(depth,0,"Protocol dispatch was trapped inside a guard block")
+                dispatches += 1
+            syntax = re.sub(r'"[^"]*"', '', line)
+            for char in syntax:
+                if char == "(": depth += 1
+                elif char == ")": depth -= 1
+                self.assertGreaterEqual(depth,0,"Unmatched closing command block")
+        self.assertEqual(depth,0,"Unclosed Windows command block")
+        self.assertEqual(dispatches,1)
 
     def test_rc_world_has_no_media_panel(self):
         scene = WORLD_SCENE_PATH.read_text(encoding="utf-8")
