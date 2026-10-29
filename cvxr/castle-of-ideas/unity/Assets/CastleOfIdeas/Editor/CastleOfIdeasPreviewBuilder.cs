@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using ABI.CCK.Components;
 using CVR.CCKEditor.ContentBuilder;
@@ -186,7 +187,7 @@ namespace CastleOfIdeas.Editor
             File.WriteAllText(Path.Combine(packagePath, "README.txt"), CreateReadme());
             File.WriteAllText(
                 Path.Combine(packagePath, "build-info.json"),
-                CreateBuildInfo(localEditorIdentifier, cckVersion)
+                CreateBuildInfo(localEditorIdentifier, cckVersion, !string.IsNullOrEmpty(CastleOfIdeasStreamingConfig.OptionalPortalReceiverUrl()))
             );
 
             var zipPath = Path.Combine(buildRoot, PackageName + ".zip");
@@ -200,6 +201,9 @@ namespace CastleOfIdeas.Editor
                 System.IO.Compression.CompressionLevel.Optimal,
                 true
             );
+            using (var stream=File.OpenRead(zipPath))
+            using (var sha=SHA256.Create())
+                File.WriteAllText(zipPath+".sha256",BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant()+"  "+Path.GetFileName(zipPath)+"\n");
 
             return zipPath;
         }
@@ -294,20 +298,22 @@ This private preview contains a build-time HLS receiver URL. The URL is not prin
 in this README or in build-info.json, but it can be extracted from the world bundle;
 do not redistribute this ZIP. The main and sub lecture screens share one program
 player and start it automatically. Start the broadcast before opening the world.
-The Early Access build has no in-world media control panel. Reopen the world if
+The beta build has no in-world media control panel. Reopen the world if
 the feed was unavailable at startup. Initial program volume is 0 dB.
 
 The 70-inch-scale portal is on the far wall of the main lecture hall, directly
-opposite its corridor entrance. It remains a visual and integration scaffold; its
-future low-latency bridge is not connected yet.
+opposite its corridor entrance. Its independent HLS receiver starts only when
+portalReceiverUrl is configured at build time. HLS portal video has the normal
+streaming delay and is not a low-latency, bidirectional voice connection.
 ";
         }
 
-        private static string CreateBuildInfo(string localEditorIdentifier, string cckVersion)
+        private static string CreateBuildInfo(string localEditorIdentifier, string cckVersion, bool portalConfigured)
         {
             return $@"{{
   ""name"": ""Castle of Ideas"",
   ""kind"": ""windows-preview"",
+  ""worldVersion"": ""0.5.1"",
   ""localEditorIdentifier"": ""{localEditorIdentifier}"",
   ""unityVersion"": ""{Application.unityVersion}"",
   ""cckVersion"": ""{cckVersion}"",
@@ -318,9 +324,10 @@ future low-latency bridge is not connected yet.
   ""launcherVersion"": 2,
   ""mediaControlPanel"": false,
   ""defaultVolumeDb"": 0,
-  ""releaseStage"": ""early-access-rc"",
+  ""releaseStage"": ""beta"",
   ""externalDiagnostics"": true,
-  ""portalStatus"": ""scaffold-only"",
+  ""portalVideoPlayers"": 1,
+  ""portalStatus"": ""{(portalConfigured ? "embedded-redacted" : "not-configured")}"",
   ""builtAtUtc"": ""{DateTime.UtcNow:O}""
 }}
 ";

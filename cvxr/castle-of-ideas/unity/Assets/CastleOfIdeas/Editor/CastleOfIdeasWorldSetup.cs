@@ -188,6 +188,7 @@ namespace CastleOfIdeas.Editor
 
             ConfigurePhotoMaterials(model);
             ConfigureLiteratureMaterials(model);
+            ConfigureSpeakerMaterials(model);
             ConfigureGeometry(model);
             ConfigureScreen(model, "SCREEN_MAIN_SURFACE", "MainScreen", ProgramRenderTextureName);
             ConfigureScreen(model, "SCREEN_SUB_SURFACE", "SubScreen", ProgramRenderTextureName);
@@ -268,6 +269,8 @@ namespace CastleOfIdeas.Editor
                 throw new InvalidOperationException("PROGRAM_FEED_PLAYER was not found in the model.");
             }
             ConfigureProgramAudio(programPlayer);
+            var portalPlayer = AttachVideoPlayer(worldRoot.transform,"PORTAL_BRIDGE_PLAYER","PortalBridge.renderTexture",playerType);
+            ConfigurePortalAudio(portalPlayer,worldRoot.transform);
 
             var seatCount = 0;
             ConfiguredChairControllers.Clear();
@@ -381,9 +384,9 @@ namespace CastleOfIdeas.Editor
             }
 
             var videoPlayers = worldRoot.GetComponentsInChildren(playerType, true);
-            if (videoPlayers.Length != 1)
+            if (videoPlayers.Length != 2)
             {
-                errors.Add($"Expected 1 shared CVRVideoPlayer component, found {videoPlayers.Length}.");
+                errors.Add($"Expected one shared program player and one independent portal player, found {videoPlayers.Length}.");
             }
             foreach (var player in videoPlayers)
             {
@@ -392,7 +395,7 @@ namespace CastleOfIdeas.Editor
                     errors.Add($"{player.gameObject.name} has no projection RenderTexture.");
                 }
             }
-            var programPlayer = videoPlayers.SingleOrDefault();
+            var programPlayer = videoPlayers.SingleOrDefault(p=>p.name=="PROGRAM_FEED_PLAYER");
             if (programPlayer != null && programPlayer.gameObject.name != "PROGRAM_FEED_PLAYER")
             {
                 errors.Add("The shared CVRVideoPlayer is not attached to PROGRAM_FEED_PLAYER.");
@@ -442,7 +445,7 @@ namespace CastleOfIdeas.Editor
 
             if (FindDeepChild(worldRoot.transform, "PROGRAM_MEDIA_CONTROL_UI") != null
                 || FindDeepChild(worldRoot.transform, "PROGRAM_CONTROL_PANEL") != null)
-                errors.Add("The RC world must not contain the removed media control panel.");
+                errors.Add("The beta world must not contain the removed media control panel.");
 
             var portalSurface = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_SURFACE");
             var portalPlayerMarker = FindDeepChild(worldRoot.transform, "PORTAL_BRIDGE_PLAYER");
@@ -459,12 +462,11 @@ namespace CastleOfIdeas.Editor
             {
                 errors.Add("The portal bridge surface or one of its future integration markers is missing.");
             }
-            if (portalPlayerMarker != null && portalPlayerMarker.GetComponent(playerType) != null)
-            {
-                errors.Add(
-                    "PORTAL_BRIDGE_PLAYER must remain a scaffold until its low-latency transport is validated."
-                );
-            }
+            if (portalPlayerMarker == null || portalPlayerMarker.GetComponent(playerType) == null)
+                errors.Add("The independent portal HLS player is missing.");
+            var portalComponent = portalPlayerMarker?.GetComponent(playerType);
+            if (portalComponent != null && !string.IsNullOrEmpty(GetFieldValue(GetFieldValue(portalComponent,"playOnAwakeObject"),"videoUrl") as string))
+                errors.Add("The source scene must not contain a baked portal URL.");
             var mainSurface = FindDeepChild(worldRoot.transform, "SCREEN_MAIN_SURFACE");
             foreach (var room in new[] { "MAIN", "SUB", "CORRIDOR", "ELEVATOR" })
             {
@@ -482,8 +484,8 @@ namespace CastleOfIdeas.Editor
             if (Mathf.Abs(mantel.bounds.max.y - 1f) > .015f)
                 errors.Add("The complete fireplace must be 1 metre tall.");
             foreach (var beam in worldRoot.GetComponentsInChildren<Renderer>().Where(r=>r.name.StartsWith("MAIN_CEILING_BEAM_")))
-                if (Mathf.Abs(beam.bounds.min.y - 2.3f) > .015f)
-                    errors.Add("The lecture beam underside must be at 2.3 metres: " + beam.name);
+                if (Mathf.Abs(beam.bounds.min.y - 2.7f) > .015f || Mathf.Abs(beam.bounds.size.y-.3f)>.01f || Mathf.Abs(beam.bounds.size.z-.3f)>.01f)
+                    errors.Add("The lecture beam must be 30 cm square, flush with the 3-m ceiling: " + beam.name);
             foreach (var node in worldRoot.GetComponentsInChildren<Transform>(true))
                 if (node.name.StartsWith("ARCH_") || node.name.StartsWith("SCREEN_SUB_FRAME_")
                     || node.name.StartsWith("PORTAL_BRIDGE_FRAME_") || node.name == "MAIN_PILASTER_W_01"
@@ -493,11 +495,44 @@ namespace CastleOfIdeas.Editor
             var board = FindDeepChild(worldRoot.transform,"WELCOME_BOARD_SURFACE").GetComponent<Renderer>();
             if (Mathf.Abs(board.bounds.size.x - 3.08f) > .01f || Mathf.Abs(board.bounds.size.y - 1.7325f) > .01f)
                 errors.Add("The welcome board must match the portal display dimensions.");
+            foreach (var room in new[] {"MAIN","SUB"})
+                foreach (var channel in new[] {"L","R"})
+                {
+                    var speaker=FindDeepChild(worldRoot.transform,$"SPEAKER_{room}_{channel}");
+                    var renderers=speaker.GetComponentsInChildren<Renderer>();
+                    var combined=renderers[0].bounds;
+                    foreach (var renderer in renderers) combined.Encapsulate(renderer.bounds);
+                    var expected=room=="MAIN" ? new Vector3(.25f,.39f,.334f) : new Vector3(.334f,.39f,.25f);
+                    if ((combined.size-expected).magnitude>.003f)
+                        errors.Add("Speaker dimensions are incorrect: " + speaker.name + " " + combined.size);
+                    if (renderers.Any(r=>r.sharedMaterial.mainTexture!=null || r.sharedMaterial.shader.name!="Standard"))
+                        errors.Add("Speaker plastic must use a plain Standard material without images: " + speaker.name);
+                    var cabinet=FindDeepChild(speaker,$"SPEAKER_{room}_{channel}_CABINET").GetComponent<Renderer>().bounds;
+                    var wall=FindDeepChild(worldRoot.transform,room=="MAIN" ? "MAIN_WALL_NORTH" : "SUB_WALL_WEST").GetComponent<Renderer>().bounds;
+                    if (Mathf.Abs(room=="MAIN" ? cabinet.min.z-wall.max.z : cabinet.max.x-wall.min.x)>.003f)
+                        errors.Add("Speaker rear face is not flush with the room wall: " + speaker.name);
+                }
+            foreach (var room in new[] {"MAIN","SUB"})
+            {
+                var prefix=room=="MAIN" ? "Main Warm Fill " : "Sub Soft Warm Fill ";
+                var fixtures=FindDeepChild(worldRoot.transform,"UNITY_LIGHTING").GetComponentsInChildren<Light>().Where(l=>l.name.StartsWith(prefix)).OrderBy(l=>l.name).ToArray();
+                var bounds=FindDeepChild(worldRoot.transform,room+"_FLOOR").GetComponent<Renderer>().bounds;
+                if (fixtures.Length!=2) errors.Add("Each room must have two principal lights: " + room);
+                else for (int i=0;i<2;i++)
+                {
+                    var expected=bounds.center; expected.y=2.65f;
+                    if (bounds.size.x>bounds.size.z) expected.x=Mathf.Lerp(bounds.min.x,bounds.max.x,(i+1f)/3f);
+                    else expected.z=Mathf.Lerp(bounds.min.z,bounds.max.z,(i+1f)/3f);
+                    if (Vector3.Distance(fixtures[i].transform.position,expected)>.005f)
+                        errors.Add("Room light must be at one-third/two-thirds of the long axis: " + fixtures[i].name);
+                }
+            }
             foreach (var headerName in new[] {"MAIN_WALL_DOOR_HEADER","SUB_WALL_DOOR_HEADER","SUB_WALL_FRONT_DOOR_HEADER"})
             {
                 var bounds = FindDeepChild(worldRoot.transform,headerName).GetComponent<Renderer>().bounds;
-                if (Mathf.Abs((headerName.StartsWith("MAIN") ? bounds.size.z : bounds.size.x) - 1.2f) > .01f)
-                    errors.Add("An entrance must have 1.2 metres of clear width: " + headerName);
+                if (Mathf.Abs((headerName.StartsWith("MAIN") ? bounds.size.z : bounds.size.x) - (headerName.StartsWith("MAIN") ? 1.6f : 1.2f)) > .01f
+                    || Mathf.Abs(bounds.min.y-2.4f)>.01f)
+                    errors.Add("Door height/width is incorrect: " + headerName);
             }
             foreach (var side in new[] {"TOP","BOTTOM","LEFT","RIGHT"})
                 if (FindDeepChild(worldRoot.transform,"PORTAL_MIST_"+side)?.GetComponent<ParticleSystem>() == null)
@@ -595,7 +630,7 @@ namespace CastleOfIdeas.Editor
             Debug.Log(
                 $"Castle of Ideas validation passed: 1 EV spawn, 1 reference camera, " +
                 $"1 shared program video player, build-time fixed URL, 2 linked lecture screens, " +
-                $"1 mirrored far-wall portal scaffold, " +
+                $"1 optional independent portal HLS receiver, " +
                 $"and {configuredSeatCount} seats."
             );
         }
@@ -684,6 +719,11 @@ namespace CastleOfIdeas.Editor
             foreach (var transform in model.GetComponentsInChildren<Transform>(true))
             {
                 var target = transform.gameObject;
+                if (target.name.StartsWith("MAIN_LANTERN_") || target.name.StartsWith("SUB_PENDANT_") || target.name=="ELEVATOR_CEILING_LIGHT")
+                {
+                    var lamp=target.GetComponent<Renderer>();
+                    if (lamp) lamp.shadowCastingMode=ShadowCastingMode.Off;
+                }
                 GameObjectUtility.SetStaticEditorFlags(
                     target,
                     StaticEditorFlags.BatchingStatic
@@ -886,9 +926,9 @@ namespace CastleOfIdeas.Editor
                 main.duration = 3; main.maxParticles = 80;
                 main.startLifetime = new ParticleSystem.MinMaxCurve(1.1f,2.2f);
                 main.startSpeed = 0;
-                main.startSize = new ParticleSystem.MinMaxCurve(.15f,.4f);
+                main.startSize = new ParticleSystem.MinMaxCurve(.20f,.5f);
                 main.startRotation = new ParticleSystem.MinMaxCurve(0,6.28f);
-                var emission=ps.emission; emission.rateOverTime=32;
+                var emission=ps.emission; emission.rateOverTime=58;
                 var shape=ps.shape; shape.shapeType=ParticleSystemShapeType.Box; shape.scale=spec.Item3;
                 var velocity=ps.velocityOverLifetime; velocity.enabled=true;
                 velocity.x=new ParticleSystem.MinMaxCurve(-.04f,.04f);
@@ -1037,6 +1077,35 @@ namespace CastleOfIdeas.Editor
             TrySetField(component, "autoplay", false);
             TrySetField(component, "playOnAwakeObject", null);
             return component;
+        }
+
+        private static void ConfigureSpeakerMaterials(GameObject model)
+        {
+            foreach (var shade in new[] {"Black","White"})
+            {
+                var path=$"{GeneratedPath}/SpeakerPlastic-{shade}.mat";
+                var material=AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (!material) { material=new Material(Shader.Find("Standard")); AssetDatabase.CreateAsset(material,path); }
+                material.color=shade=="Black" ? new Color(.018f,.018f,.018f) : new Color(.93f,.93f,.93f);
+                material.mainTexture=null; material.SetFloat("_Metallic",0); material.SetFloat("_Glossiness",.58f);
+                EditorUtility.SetDirty(material);
+                foreach (var renderer in model.GetComponentsInChildren<Renderer>().Where(r=>r.name.StartsWith("SPEAKER_")))
+                    if (renderer.sharedMaterial.name == "MAT_SPEAKER_"+shade.ToUpperInvariant()) renderer.sharedMaterial=material;
+            }
+        }
+
+        private static void ConfigurePortalAudio(Component player, Transform root)
+        {
+            var anchor=FindDeepChild(root,"PORTAL_BRIDGE_VOICE_ANCHOR");
+            var go=FindOrCreate(root,"PORTAL_AUDIO_OUTPUT");
+            go.transform.position=anchor.position;
+            var source=go.GetComponent<AudioSource>(); if (!source) source=go.AddComponent<AudioSource>();
+            source.playOnAwake=false; source.spatialBlend=1; source.volume=1;
+            source.minDistance=1; source.maxDistance=8; source.dopplerLevel=0;
+            source.rolloffMode=AudioRolloffMode.Logarithmic;
+            TrySetEnumField(player,"audioPlaybackMode","AudioSource");
+            TrySetField(player,"customAudioSource",source);
+            TrySetField(player,"playbackVolume",1f);
         }
 
         private static void ConfigureProgramAudio(Component player)
@@ -1611,13 +1680,26 @@ namespace CastleOfIdeas.Editor
                 position.y = height;
                 return position;
             }
+            Vector3 LongAxisPoint(string name, float fraction)
+            {
+                var bounds=FindDeepChild(root,name).GetComponent<Renderer>().bounds;
+                var position=bounds.center;
+                if (bounds.size.x>bounds.size.z) position.x=Mathf.Lerp(bounds.min.x,bounds.max.x,fraction);
+                else position.z=Mathf.Lerp(bounds.min.z,bounds.max.z,fraction);
+                position.y=2.65f;
+                return root.InverseTransformPoint(position);
+            }
             var lights = new List<(string Name, Vector3 Position, Color Color, float Intensity, float Range)>
             {
-                ("Main Warm Fill", Above("MAIN_FLOOR", 2.65f), new Color(1f, 0.78f, 0.55f), 1.6f, 12f),
-                ("Sub Soft Warm Fill", Above("SUB_FLOOR", 2.65f), new Color(1f, 0.95f, 0.87f), 1.8f, 12f),
+                ("Main Warm Fill 1", LongAxisPoint("MAIN_FLOOR",1f/3f), new Color(1f, 0.78f, 0.55f), 1.15f, 10f),
+                ("Main Warm Fill 2", LongAxisPoint("MAIN_FLOOR",2f/3f), new Color(1f, 0.78f, 0.55f), 1.15f, 10f),
+                ("Sub Soft Warm Fill 1", LongAxisPoint("SUB_FLOOR",1f/3f), new Color(1f, 0.95f, 0.87f), 1.3f, 10f),
+                ("Sub Soft Warm Fill 2", LongAxisPoint("SUB_FLOOR",2f/3f), new Color(1f, 0.95f, 0.87f), 1.3f, 10f),
                 ("Corridor Fill", Above("CORRIDOR_FLOOR", 2.65f), new Color(0.65f, 0.79f, 1f), 1.1f, 10f),
                 ("Elevator Cabin", Above("ELEVATOR_FLOOR", 2.45f), new Color(1f, 0.96f, 0.89f), 1.8f, 3.5f)
             };
+            foreach (var obsolete in lighting.transform.Cast<Transform>().Where(t=>!lights.Any(l=>l.Name==t.name)).ToArray())
+                UnityEngine.Object.DestroyImmediate(obsolete.gameObject);
             foreach (var definition in lights)
             {
                 var lightObject = FindOrCreate(lighting.transform, definition.Name);

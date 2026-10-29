@@ -19,6 +19,7 @@ namespace CastleOfIdeas.Editor
         private sealed class LocalConfig
         {
             public string receiverUrl;
+            public string portalReceiverUrl;
         }
 
         internal static string RequireReceiverUrl()
@@ -56,7 +57,7 @@ namespace CastleOfIdeas.Editor
             return receiverUrl;
         }
 
-        internal static void ApplyToBuildRoot(GameObject worldRoot, string receiverUrl)
+        internal static void ApplyToBuildRoot(GameObject worldRoot, string receiverUrl, string portalReceiverUrl = null)
         {
             var sceneRoot = GetSceneRoot(worldRoot);
             if (sceneRoot == null || !IsCastleOfIdeasWorld(sceneRoot))
@@ -82,11 +83,64 @@ namespace CastleOfIdeas.Editor
             player.playOnAwakeObject = playOnAwake;
             player.autoplay = true;
 
+            var portalUrl = portalReceiverUrl ?? OptionalPortalReceiverUrl();
+            var portal = sceneRoot.GetComponentsInChildren<CVRVideoPlayer>(true)
+                .Single(component => component.gameObject.name == "PORTAL_BRIDGE_PLAYER");
+            portal.playOnAwakeObject = string.IsNullOrEmpty(portalUrl) ? null : new CVRVideoPlayerPlaylistEntity
+            {
+                videoUrl = portalUrl,
+                videoTitle = "Portal Feed"
+            };
+            portal.autoplay = !string.IsNullOrEmpty(portalUrl);
+            EditorUtility.SetDirty(portal);
+            Debug.Log("Castle of Ideas portal HLS: " + (portal.autoplay ? "configured (redacted)" : "not configured; receiver remains idle"));
+
             EditorUtility.SetDirty(player);
             Debug.Log(
                 $"Castle of Ideas receiver URL injected into the temporary build " +
                 $"(redacted, {receiverUrl.Length} characters)."
             );
+        }
+
+        internal static string OptionalPortalReceiverUrl()
+        {
+            var path = FindConfigPath();
+            if (string.IsNullOrEmpty(path)) return null;
+            var config = JsonUtility.FromJson<LocalConfig>(File.ReadAllText(path));
+            var value = config?.portalReceiverUrl?.Trim();
+            if (string.IsNullOrEmpty(value)) return null;
+            if (!IsSupportedReceiverUrl(value))
+                throw new InvalidOperationException("portalReceiverUrl must be empty or an HTTPS .m3u8 receiver URL.");
+            return value;
+        }
+
+        public static void AuditBuildInjection()
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity");
+            var original=GameObject.Find("CASTLE_OF_IDEAS_WORLD_ROOT");
+            var sourceState=original.GetComponentsInChildren<CVRVideoPlayer>(true)
+                .ToDictionary(p=>p.name,p=>EditorJsonUtility.ToJson(p));
+            var copy=UnityEngine.Object.Instantiate(original);
+            copy.name=original.name;
+            try
+            {
+                const string programUrl="https://example.invalid/program/index.m3u8";
+                const string portalUrl="https://example.invalid/portal/index.m3u8";
+                ApplyToBuildRoot(copy,programUrl,portalUrl);
+                var players=copy.GetComponentsInChildren<CVRVideoPlayer>(true);
+                var program=players.Single(p=>p.name=="PROGRAM_FEED_PLAYER");
+                var portal=players.Single(p=>p.name=="PORTAL_BRIDGE_PLAYER");
+                if (program.playOnAwakeObject.videoUrl!=programUrl || portal.playOnAwakeObject.videoUrl!=portalUrl
+                    || !program.autoplay || !portal.autoplay || program.ProjectionTexture==portal.ProjectionTexture)
+                    throw new InvalidOperationException("Independent HLS URL injection failed.");
+                ApplyToBuildRoot(copy,programUrl,string.Empty);
+                if (portal.autoplay || portal.playOnAwakeObject!=null)
+                    throw new InvalidOperationException("An empty portal URL must leave the portal idle.");
+                if (original.GetComponentsInChildren<CVRVideoPlayer>(true).Any(p=>EditorJsonUtility.ToJson(p)!=sourceState[p.name]))
+                    throw new InvalidOperationException("Build injection changed the source scene.");
+                Debug.Log("Castle of Ideas build injection audit passed: two independent feeds, empty portal idle, source scene unchanged. No network requests made.");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(copy); }
         }
 
         internal static bool IsCastleOfIdeasWorld(GameObject worldRoot)

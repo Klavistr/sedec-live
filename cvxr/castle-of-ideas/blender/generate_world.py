@@ -24,10 +24,10 @@ DEFAULT_CONFIG = PROJECT_DIR / "design" / "layout.json"
 COLLECTIONS: dict[str, bpy.types.Collection] = {}
 MATERIALS: dict[str, bpy.types.Material] = {}
 PHOTO_TEXTURES = {
-    "MAT_MAIN_WALL_PLASTER": ("main-stone", (4.0, 1.2)),
+    "MAT_MAIN_WALL_PLASTER": ("main-stone", (3.2, 1.2)),
     "MAT_MAIN_FLOOR_STONE": ("floor-stone", (2.0, 2.0)),
     "MAT_MAIN_CEILING_STONE": ("ceiling-stone", (2.0, 2.0)),
-    "MAT_CORRIDOR_WALL": ("corridor-blue-stone", (4.0, 1.2)),
+    "MAT_CORRIDOR_WALL": ("corridor-blue-stone", (3.2, 1.2)),
     "MAT_MAIN_WOOD": ("desk-wood", None),
     "MAT_CHAIR_OAK": ("chair-oak", None),
     "MAT_MAIN_UPHOLSTERY": ("black-leather", None),
@@ -139,6 +139,8 @@ def create_materials() -> None:
     material("MAT_ELEVATOR_CARPET", (0.018, 0.055, 0.11, 1), roughness=0.88)
     material("MAT_ELEVATOR_MIRROR", (0.2, 0.28, 0.34, 1), roughness=0.08, metallic=0.9)
     material("MAT_BLACKOUT", (0.008, 0.009, 0.012, 1), roughness=0.9)
+    material("MAT_SPEAKER_WHITE", (0.93, 0.93, 0.93, 1), roughness=0.28)
+    material("MAT_SPEAKER_BLACK", (0.018, 0.018, 0.018, 1), roughness=0.28)
     material("MAT_MAIN_CEILING_STONE", (0.3, 0.28, 0.24, 1), roughness=0.9)
     material("MAT_CHAIR_OAK", (0.3, 0.13, 0.04, 1), roughness=0.4)
     material("MAT_DESK_CARVING", (0.15, 0.12, 0.1, 1), roughness=0.45)
@@ -251,8 +253,10 @@ def box(
                 axes = [0, 2]
             for loop_index in polygon.loop_indices:
                 vertex = obj.data.vertices[obj.data.loops[loop_index].vertex_index].co
+                if material_name in ("MAT_MAIN_WALL_PLASTER", "MAT_CORRIDOR_WALL"):
+                    vertex = vertex + Vector(location)
                 uv_layer.data[loop_index].uv = tuple(
-                    (vertex[axis] + size[axis] / 2) / (repeat[i] if repeat else size[axis])
+                    (vertex[axis] + (0 if material_name in ("MAT_MAIN_WALL_PLASTER", "MAT_CORRIDOR_WALL") else size[axis] / 2)) / (repeat[i] if repeat else size[axis])
                     for i, axis in enumerate(axes)
                 )
     if MATERIALS.get(material_name):
@@ -342,7 +346,7 @@ def cylinder(
     if parent:
         obj.parent = parent
     bevel_modifier = obj.modifiers.new("Edge Softening", "BEVEL")
-    bevel_modifier.width = 0.025
+    bevel_modifier.width = min(0.025, radius * 0.15, depth * 0.2)
     bevel_modifier.segments = 2
     return obj
 
@@ -467,6 +471,15 @@ def create_architecture(config: dict) -> None:
     wall_y("CORRIDOR_WALL_SOUTH_EAST", corridor["minY"], lift_open["max"], corridor["maxX"], height, thickness, "MAT_CORRIDOR_WALL")
     wall_x("CORRIDOR_WALL_WEST", corridor["minX"], corridor["minY"], corridor["maxY"], height, thickness, "MAT_CORRIDOR_WALL")
     box("CORRIDOR_WALL_ELEVATOR_HEADER", ((lift_open["min"] + lift_open["max"]) / 2, lift_open["wall"], header_z), (lift_open["max"] - lift_open["min"], thickness, header_height), "MAT_CORRIDOR_WALL", bevel=0)
+    # Silver inner lining and reveal: the corridor's blue stone remains outside.
+    inner_front = lift["maxY"] - thickness/2 - .012
+    box("ELEVATOR_FRONT_HEADER_LINING", (lift_center[0], inner_front, (dims["doorHeight"]+lift_height)/2),
+        (lift_width-.2,.024,lift_height-dims["doorHeight"]),"MAT_ELEVATOR_SILVER",bevel=0)
+    box("ELEVATOR_DOOR_HEAD_REVEAL", (lift_center[0],lift["maxY"],dims["doorHeight"]+.008),
+        (lift_open["max"]-lift_open["min"],thickness+.05,.016),"MAT_ELEVATOR_SILVER",bevel=0)
+    for side,edge in (("LEFT",lift_open["min"]),("RIGHT",lift_open["max"])):
+        box("ELEVATOR_DOOR_REVEAL_"+side,(edge, lift["maxY"],dims["doorHeight"]/2),
+            (.016,thickness+.05,dims["doorHeight"]),"MAT_ELEVATOR_SILVER",bevel=0)
 
     wall_x(
         "ELEVATOR_WALL_WEST",
@@ -500,14 +513,14 @@ def create_architecture(config: dict) -> None:
     # exported as markers for a later CVR-synced sliding-door animation.
     box(
         "ELEVATOR_DOOR_LEFT_OPEN",
-        (16.52, 1.42 + lift_y_offset, 1.15),
-        (0.48, 0.12, 2.3),
+        (16.52, 1.42 + lift_y_offset, 1.2),
+        (0.48, 0.12, 2.4),
         "MAT_ELEVATOR_SILVER",
     )
     box(
         "ELEVATOR_DOOR_RIGHT_OPEN",
-        (18.48, 1.42 + lift_y_offset, 1.15),
-        (0.48, 0.12, 2.3),
+        (18.48, 1.42 + lift_y_offset, 1.2),
+        (0.48, 0.12, 2.4),
         "MAT_ELEVATOR_SILVER",
     )
     empty(
@@ -586,7 +599,7 @@ def create_architecture(config: dict) -> None:
             box(f"MAIN_PILASTER_{side}_{index:02d}", (x, y, height / 2), (pier_width, pier_depth, height), "MAT_MAIN_WALL_PLASTER", bevel=0)
     for index in range(4):
         y = main["minY"] + 1.2 + index * (main_depth - 2.4) / 3
-        box(f"MAIN_CEILING_BEAM_{index:02d}", (main_center_x, y, height - 0.35), (main["maxX"] - main["minX"] - 0.5, 0.25, 0.7), "MAT_MAIN_CEILING_STONE", target_collection="Ceilings", bevel=0)
+        box(f"MAIN_CEILING_BEAM_{index:02d}", (main_center_x, y, height - config["beams"]["height"]/2), (main["maxX"] - main["minX"] - 0.5, config["beams"]["width"], config["beams"]["height"]), "MAT_MAIN_CEILING_STONE", target_collection="Ceilings", bevel=0)
 
 
 
@@ -661,7 +674,7 @@ def turned_post(name: str, position, height: float, radius: float, mat: str, par
     return obj
 
 
-def create_chair(name: str, location, rotation_z: float, style: str) -> bpy.types.Object:
+def create_chair(name: str, location, rotation_z: float, style: str, seating: dict) -> bpy.types.Object:
     frame = "MAT_CHAIR_OAK" if style == "main" else "MAT_SUB_TRIM_WHITE"
     upholstery = "MAT_MAIN_UPHOLSTERY" if style == "main" else "MAT_SUB_UPHOLSTERY_ROSE"
     root = empty(name, location, rotation_z, target_collection="Furniture")
@@ -691,7 +704,8 @@ def create_chair(name: str, location, rotation_z: float, style: str) -> bpy.type
             box(f"{name}_BackUpright_{x}", (x, -0.23, 0.80), (0.065, 0.055, 0.64), frame, target_collection="Furniture", parent=root)
         box(f"{name}_PlankBack", (0, -0.23, 1.05), (0.52, 0.065, 0.24), frame, target_collection="Furniture", parent=root)
         box(f"{name}_FootBrace", (0, 0.18, 0.17), (0.48, 0.035, 0.04), "MAT_CHAIR_OAK", target_collection="Furniture", parent=root)
-    seat_point = empty(f"{name}_SeatPoint", (0.0, 0.0, 0.64), target_collection="Markers", parent=root)
+    # CVR wants the animation origin, not the avatar's hip joint position.
+    seat_point = empty(f"{name}_SeatPoint", (0.0, seating["forwardOffset"], seating["animationOriginHeight"]), target_collection="Markers", parent=root)
     seat_point["castle_of_ideas_role"] = "sit-position"
     exit_point = empty(f"{name}_ExitPoint", (0.0, -0.92, 0.0), target_collection="Markers", parent=root)
     exit_point["castle_of_ideas_role"] = "sit-exit"
@@ -713,7 +727,7 @@ def create_furniture(config: dict) -> None:
             for seat in range(main["chairsPerTable"]):
                 chair_index += 1
                 chair_x = x + (-1 if seat == 0 else 1) * (main["tableSize"][0] / 2 - main["chairEdgeInset"] - main["chairFrameWidth"] / 2)
-                create_chair(f"MAIN_CHAIR_{chair_index:03d}", (chair_x, y - 0.72, 0.0), 0.0, "main")
+                create_chair(f"MAIN_CHAIR_{chair_index:03d}", (chair_x, y - 0.72, 0.0), 0.0, "main", config["seating"])
 
     sub = furniture["sub"]
     chair_index = 0
@@ -733,6 +747,7 @@ def create_furniture(config: dict) -> None:
                     (x + offset, chair_y, 0.0),
                     rotation,
                     "sub",
+                    config["seating"],
                 )
 
 
@@ -894,17 +909,23 @@ def create_media_markers(config: dict) -> None:
 
 
 def create_speakers_and_sign(config: dict) -> None:
+    spec = config["speakers"]
     for room in ("MAIN", "SUB"):
         screen = config["screens"][room.lower()]
+        bounds = config["dimensions"][room.lower()]
         x,y,z = screen["center"]
         for ch, sign in (("L",-1),("R",1)):
-            offset = sign * (screen["width"]/2 + .42)
-            center = (x+offset,y-.18,z) if room == "MAIN" else (x+.18,y+offset,z)
+            offset = sign * (screen["width"]/2 + .30)
+            # The rear face touches the room wall behind the lecture display.
+            center = (x+offset,bounds["maxY"]-.1-spec["depth"]/2,z) if room == "MAIN" else (bounds["minX"]+.1+spec["depth"]/2,y+offset,z)
             root = empty(f"SPEAKER_{room}_{ch}",center,0 if room == "MAIN" else math.pi/2,target_collection="Screens")
-            box(f"SPEAKER_{room}_{ch}_CABINET",(0,0,0),(.36,.22,.76),"MAT_BLACKOUT" if room == "MAIN" else "MAT_SUB_TRIM_WHITE",parent=root,target_collection="Screens")
-            for i,(h,r) in enumerate(((.18,.07),(-.13,.125))):
-                cylinder(f"SPEAKER_{room}_{ch}_DRIVER_{i}",(0,-.118,h),r,.02,"MAT_BLACKOUT",parent=root,rotation=(math.pi/2,0,0))
-            empty(f"SPEAKER_{room}_{ch}_AUDIO",(0,-.14,0),parent=root,target_collection="Gimmicks")
+            case_mat = "MAT_SPEAKER_BLACK" if room == "MAIN" else "MAT_SPEAKER_WHITE"
+            box(f"SPEAKER_{room}_{ch}_CABINET",(0,.002,0),(spec["width"],spec["depth"]-.004,spec["height"]),case_mat,parent=root,target_collection="Screens",bevel=.006)
+            front = -spec["depth"]/2
+            cylinder(f"SPEAKER_{room}_{ch}_TWEETER",(0,front+.001,.125),spec["tweeterDiameter"]/2,.002,case_mat,parent=root,rotation=(math.pi/2,0,0),vertices=32)
+            cylinder(f"SPEAKER_{room}_{ch}_WOOFER_RIM",(0,front+.002,-.055),spec["wooferDiameter"]/2,.002,"MAT_SPEAKER_BLACK",parent=root,rotation=(math.pi/2,0,0),vertices=48)
+            cylinder(f"SPEAKER_{room}_{ch}_WOOFER_CONE",(0,front+.0005,-.055),spec["wooferDiameter"]/2-spec["wooferRim"],.001,"MAT_SPEAKER_WHITE",parent=root,rotation=(math.pi/2,0,0),vertices=48)
+            empty(f"SPEAKER_{room}_{ch}_AUDIO",(0,front-.012,0),parent=root,target_collection="Gimmicks")
     target = material("MAT_WELCOME_BOARD",(1,1,1,1),roughness=.9)
     texture=target.node_tree.nodes.new("ShaderNodeTexImage")
     texture.image=bpy.data.images.load(str(PROJECT_DIR/'unity/Assets/CastleOfIdeas/Textures/Signs/welcome-board.png'))
@@ -1031,7 +1052,7 @@ def create_portal(portal: dict) -> None:
         return (x + inward[0] * distance, y + inward[1] * distance, marker_z)
 
     for marker_name, marker_location, role in (
-        ("PORTAL_BRIDGE_PLAYER", toward_room(0.15, z), "future-cvr-video-player"),
+        ("PORTAL_BRIDGE_PLAYER", toward_room(0.15, z), "independent-hls-player"),
         ("PORTAL_BRIDGE_VIEW_ANCHOR", toward_room(1.8, 1.65), "portal-viewpoint"),
         ("PORTAL_BRIDGE_VOICE_ANCHOR", toward_room(0.5, 1.65), "portal-voice-anchor"),
         ("PORTAL_BRIDGE_CAMERA_TARGET", toward_room(0.12, 1.65), "portal-camera-target"),
@@ -1064,26 +1085,24 @@ def create_lighting(config: dict) -> None:
     sub = config["dimensions"]["sub"]
     corridor = config["dimensions"]["corridor"]
     lift = config["dimensions"]["elevatorLobby"]
-    main_xs = (main["minX"] + 2.1, main["maxX"] - 2.1)
-    main_ys = (main["minY"] + 1.8, (main["minY"] + main["maxY"]) / 2, main["maxY"] - 1.8)
-    for index, (x, y) in enumerate(((x, y) for y in reversed(main_ys) for x in main_xs), start=1):
+    for index, fraction in enumerate((1/3,2/3),start=1):
+        x = (main["minX"]+main["maxX"])/2
+        y = main["minY"]+(main["maxY"]-main["minY"])*fraction
         cylinder(f"MAIN_LANTERN_{index:02d}", (x, y, 2.64), 0.12, 0.22, "MAT_LIGHT_WARM", target_collection="Lighting")
         light = add_light(f"MAIN_LIGHT_{index:02d}", (x, y, 2.54), (1.0, 0.65, 0.35), 130.0)
         light["castle_of_ideas_group"] = "main-room-lights"
     sub_center_y = (sub["minY"] + sub["maxY"]) / 2
-    for index in range(4):
-        x = sub["minX"] + 1.8 + index * (sub["maxX"] - sub["minX"] - 3.6) / 3
+    for index, fraction in enumerate((1/3,2/3)):
+        x = sub["minX"] + fraction * (sub["maxX"] - sub["minX"])
         cylinder(f"SUB_PENDANT_{index + 1:02d}", (x, sub_center_y, 2.70), 0.2, 0.15, "MAT_LIGHT_SUB", target_collection="Lighting")
         light = add_light(f"SUB_LIGHT_{index + 1:02d}", (x, sub_center_y, 2.55), (1.0, 0.94, 0.84), 200.0)
         light["castle_of_ideas_group"] = "sub-room-lights"
-    add_light("PREVIEW_FILL_MAIN", ((main["minX"] + main["maxX"]) / 2, (main["minY"] + main["maxY"]) / 2, 2.85), (1.0, 0.79, 0.59), 220.0, "AREA", 6.0)
-    add_light("PREVIEW_FILL_SUB", ((sub["minX"] + sub["maxX"]) / 2, sub_center_y, 2.85), (1.0, 0.95, 0.87), 350.0, "AREA", 6.0)
     add_light("PREVIEW_CORRIDOR", (17.5, 2.75, 2.65), (0.65, 0.79, 1.0), 100.0)
     fireplace = config["fireplace"]["center"]
     add_light("FIREPLACE_GLOW", (fireplace[0] + 0.35, fireplace[1], 0.6), (1, 0.22, 0.02), 75)
     elevator_light = add_light(
         "ELEVATOR_LIGHT",
-        ((lift["minX"] + lift["maxX"]) / 2, (lift["minY"] + lift["maxY"]) / 2, 2.85),
+        ((lift["minX"] + lift["maxX"]) / 2, (lift["minY"] + lift["maxY"]) / 2, 2.45),
         (0.68, 0.84, 1.0),
         470.0,
         "AREA",

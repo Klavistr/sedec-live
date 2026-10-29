@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 TITLE_FONT = Path('/System/Library/Fonts/Supplemental/STIXGeneral.otf')
-BODY_FONT = Path('/Library/Fonts/NotoSansJP-Regular.otf')
+BODY_FONT = Path('/System/Library/Fonts/Supplemental/Hoefler Text.ttc')
 
 
 def fraktur(text):
@@ -25,10 +25,10 @@ def main():
     body = ImageFont.truetype(str(BODY_FONT),55)
     gold = (220,185,104)
     draw.rectangle((55,55,1865,1025),outline=(119,95,48),width=3)
-    lines = [('Welcome to',title,165),('Castle of Ideas',title,350),
-             ('ようこそ、アイデアの城へ',body,555),
-             ('右へまっすぐ：魔法学校 講義室 →',body,730),
-             ('この黒板の裏手：アリス 自習室',body,845)]
+    spec = json.loads((ROOT/'design/welcome-board.json').read_text())
+    lines = [(text,title,y) for text,y in zip(spec['titleLines'],(65,245))]
+    lines += [(text,body,y) for text,y in zip(spec['directions'],(490,575))]
+    lines += [(text,body,y) for text,y in zip(spec['programLines'],(730,810,905))]
     for text,font,y in lines:
         label = fraktur(text) if font is title else text
         bbox = draw.textbbox((0,0),label,font=font)
