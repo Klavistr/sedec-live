@@ -173,11 +173,11 @@ namespace CastleOfIdeas.Editor
             File.Copy(builtBundlePath, Path.Combine(packagePath, BundleName), true);
             File.WriteAllText(
                 Path.Combine(packagePath, "launch-castle-of-ideas.cmd"),
-                CreateWindowsLauncher(localEditorIdentifier)
+                CreateWindowsLauncher(localEditorIdentifier).Replace("\r\n", "\n").Replace("\n", "\r\n")
             );
             File.WriteAllText(
                 Path.Combine(packagePath, "launch-castle-of-ideas-debug.cmd"),
-                CreateDebugLauncher()
+                CreateDebugLauncher().Replace("\r\n", "\n").Replace("\n", "\r\n")
             );
             File.WriteAllText(
                 Path.Combine(packagePath, "watch-castle-of-ideas-log.ps1"),
@@ -222,6 +222,7 @@ if not exist ""%BUNDLE%"" (
   echo {BundleName} was not found next to this launcher.
   pause
   exit /b 1
+)
 for /f ""usebackq delims="" %%U in (`powershell -NoProfile -Command ""[uri]::EscapeDataString($env:BUNDLE)""`) do set ""ENCODED=%%U""
 start """" ""chilloutvr://test/world?objectId={localEditorIdentifier}&filepath=%ENCODED%""
 endlocal
@@ -280,6 +281,7 @@ Requirements:
 - ChilloutVR installed and registered for chilloutvr:// links
 
 Run launch-castle-of-ideas.cmd to open this build in ChilloutVR.
+Extract the entire ZIP first; do not run the launcher inside a compressed folder.
 Run launch-castle-of-ideas-debug.cmd instead to also open a separate diagnostics
 window. The diagnostics window follows ChilloutVR's Player.log and filters
 video-player, HLS, and Castle of Ideas messages. It redacts HTTPS URLs.
@@ -313,6 +315,7 @@ future low-latency bridge is not connected yet.
   ""linkedLectureScreens"": 2,
   ""receiverUrl"": ""embedded-redacted"",
   ""runtimeReceiverUrlInput"": false,
+  ""launcherVersion"": 2,
   ""mediaControlPanel"": false,
   ""defaultVolumeDb"": 0,
   ""releaseStage"": ""early-access-rc"",
