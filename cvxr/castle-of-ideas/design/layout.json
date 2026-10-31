@@ -52,10 +52,11 @@
       "chairsPerLongSide": 2
     }
   },
-  "seating": {"animationOriginHeight": 0.44, "forwardOffset": 0.2, "calibration": "Move the default-animation origin 20 cm down and 20 cm forward from the previous build, based on Windows client screenshots"},
+  "seating": {"animationOriginHeight": 0.54, "forwardOffset": 0.3, "calibration": "Move 10 cm up and 10 cm toward the desk from beta 0.5.1, based on Windows client screenshots"},
+  "corridorFinish": {"clearWidth": 1.6, "blueFacingThickness": 0.012, "reference": "dimensions.corridor Y bounds are finished clear faces; move wall solids outward"},
   "masonry": {"blockWidth": 0.8, "blockHeight": 0.6, "textureColumns": 4, "textureRows": 2, "uvOrigin": "world-space; shared vertical phase at floor level"},
   "beams": {"width": 0.3, "height": 0.3, "mount": "ceiling", "dimensionStatus": "deliberate game-space adaptation; not the physical venue beam size"},
-  "speakers": {"width": 0.25, "height": 0.39, "depth": 0.334, "tweeterDiameter": 0.0254, "wooferDiameter": 0.2032, "wooferRim": 0.01, "mount": "back face flush with room wall"},
+  "speakers": {"width": 0.25, "height": 0.39, "depth": 0.334, "tweeterDiameter": 0.0254, "wooferDiameter": 0.2032, "wooferRim": 0.01, "mainProjectionClearance": 0.1, "mount": "back face flush with room wall; main cabinet inner edge clears projecting pier by 10 cm"},
   "screens": {
     "main": {"center": [28.5, 11.45, 1.65], "width": 3.652752, "height": 2.054673, "faces": "south", "diagonalInches": 165, "wallProjection": 0.55},
     "sub": {"center": [10.72, 8.8, 1.65], "width": 3.652752, "height": 2.054673, "faces": "east", "diagonalInches": 165},
@@ -106,7 +107,7 @@
         "receiverUrl": "build-time-local-config",
         "panel": "removed-for-early-access",
         "autoplay": true,
-        "defaultVolumeDb": 0.0
+        "defaultVolumeDb": 0.8278537
       }
     },
     "portalBridge": {"playerCount": 1, "outputs": ["portal"], "status": "optional-build-time-url", "transport": "https-hls", "configField": "portalReceiverUrl"}
