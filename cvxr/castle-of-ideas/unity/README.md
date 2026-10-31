@@ -14,7 +14,7 @@ CCK とその依存物はライセンスおよび更新手順の都合で同梱�
 
 Windows Previewの問題を調べる場合は `launch-castle-of-ideas-debug.cmd` から起動します。別のPowerShell窓がChilloutVRの `Player.log` を追跡し、Video Player、HLSと `[CastleOfIdeas]` の行を表示します。HTTPS URLはログ表示時に伏せ字にします。
 
-メイン／サブの講演スクリーンは `ProgramFeed.renderTexture` を共有します。音声は2D Audio Sourceから `ProgramAudio.mixer` へ送り、初期音量は0 dBです。RCではワールド内の配信コンパネを撤去しています。`PORTAL_BRIDGE_PLAYER` はメイン講義室へ入った正面の奥壁にある、70型BIG PADの縦横2倍の低遅延方式検証用マーカーです。初期HLS構成ではVideo Playerを付けません。
+メイン／サブの講演スクリーンは `ProgramFeed.renderTexture` を共有します。1台の講演受信機からRoom ScaleのL/R音声を各室のスピーカー計4台へ送り、部屋の中ほどで−6 dB以内となるカスタム距離減衰を使います。`ProgramAudio.mixer` の初期ゲインは1.1倍（約+0.83 dB）です。ベータ版ではワールド内の配信コンパネを撤去しています。`PORTAL_BRIDGE_PLAYER` は独立した任意のHLS受信機で、`portalReceiverUrl` をビルド用コピーへ注入した場合だけ自動再生します。
 
 初回セットアップ後は、生成された `.meta`、シーン、Material、RenderTexture をコミット対象にします。`Library/`、`Temp/`、`Logs/`、ユーザー固有設定はコミットしません。
 

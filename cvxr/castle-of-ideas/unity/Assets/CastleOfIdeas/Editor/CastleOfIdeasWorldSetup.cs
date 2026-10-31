@@ -143,6 +143,8 @@ namespace CastleOfIdeas.Editor
             Render("unity-alice-rear", new Vector3(salon.max.x - 0.8f, 1.65f, salon.center.z), new Vector3(salon.min.x, 1.65f, salon.center.z), 76f);
             var arrival = FindDeepChild(root, "RESPAWN_SAFE_CORRIDOR").position;
             var entrance = FindDeepChild(root, "DOOR_MAIN_CENTER").position;
+            Render("unity-main-entrance", new Vector3(entrance.x - 2f, 1.6f, entrance.z), new Vector3(arrival.x, 1.6f, entrance.z), 65f);
+            Render("unity-main-speakers", new Vector3(screen.x, 1.65f, screen.z + 3.8f), new Vector3(screen.x, 1.65f, screen.z), 70f);
             Render("unity-corridor", arrival + new Vector3(1.8f, 1.6f, 0), new Vector3(entrance.x, 1.6f, entrance.z), 75f);
             var welcome = FindDeepChild(root,"WELCOME_BOARD_SURFACE").position;
             Render("unity-welcome",new Vector3(welcome.x,1.55f,-2.7f),welcome,72f);
@@ -418,8 +420,17 @@ namespace CastleOfIdeas.Editor
             else foreach (var speaker in speakers)
             {
                 var source = GetFieldValue(speaker, "audioSource") as AudioSource;
-                if (source == null || source.spatialBlend != 1f || source.volume != 1f || source.outputAudioMixerGroup != null)
-                    errors.Add("A speaker must preserve unity gain and use native spatial attenuation.");
+                if (source == null || source.spatialBlend != 1f || source.volume != 1f
+                    || source.outputAudioMixerGroup == null || source.rolloffMode != AudioRolloffMode.Custom)
+                    errors.Add("A speaker must use the program gain mixer and the room-filling custom distance curve.");
+                else
+                {
+                    var roomFloor = FindDeepChild(worldRoot.transform, source.name.Contains("MAIN") ? "MAIN_FLOOR" : "SUB_FLOOR").GetComponent<Renderer>().bounds;
+                    var listener = roomFloor.center; listener.y = 1.6f;
+                    var amplitude = source.GetCustomCurve(AudioSourceCurveType.CustomRolloff).Evaluate(Vector3.Distance(source.transform.position, listener) / source.maxDistance);
+                    if (amplitude < .501f)
+                        errors.Add("Program audio loses more than 6 dB at the room centre: " + source.name);
+                }
             }
             var programTexture = programPlayer == null
                 ? null
@@ -511,7 +522,17 @@ namespace CastleOfIdeas.Editor
                     var wall=FindDeepChild(worldRoot.transform,room=="MAIN" ? "MAIN_WALL_NORTH" : "SUB_WALL_WEST").GetComponent<Renderer>().bounds;
                     if (Mathf.Abs(room=="MAIN" ? cabinet.min.z-wall.max.z : cabinet.max.x-wall.min.x)>.003f)
                         errors.Add("Speaker rear face is not flush with the room wall: " + speaker.name);
+                    if (room == "MAIN")
+                    {
+                        var pier = FindDeepChild(worldRoot.transform, "MAIN_MONITOR_PROJECTING_PIER").GetComponent<Renderer>().bounds;
+                        var gap = Mathf.Max(pier.min.x - combined.max.x, combined.min.x - pier.max.x);
+                        if (gap < .098f) errors.Add("Main speaker must clear the screen pier by 10 cm: " + speaker.name);
+                    }
                 }
+            var corridorSouth = FindDeepChild(worldRoot.transform, "CORRIDOR_WALL_SOUTH_EAST").GetComponent<Renderer>().bounds;
+            var corridorNorth = FindDeepChild(worldRoot.transform, "CORRIDOR_BLUE_SUB_FACE_EAST").GetComponent<Renderer>().bounds;
+            if (Mathf.Abs(corridorSouth.min.z - corridorNorth.max.z - 1.6f) > .003f)
+                errors.Add("Corridor finished faces must leave exactly 1.6 metres clear.");
             foreach (var room in new[] {"MAIN","SUB"})
             {
                 var prefix=room=="MAIN" ? "Main Warm Fill " : "Sub Soft Warm Fill ";
@@ -1113,6 +1134,7 @@ namespace CastleOfIdeas.Editor
             var audioObject = GameObject.Find("PROGRAM_AUDIO_OUTPUT");
             if (audioObject != null) UnityEngine.Object.DestroyImmediate(audioObject);
             var outputs = CreateListForField(player, "roomScaleAudioSources");
+            var mixer = EnsureProgramAudioMixer();
             var entryType = outputs.GetType().GetGenericArguments()[0];
             foreach (var room in new[] { "MAIN", "SUB" })
                 foreach (var channel in new[] { "L", "R" })
@@ -1124,10 +1146,24 @@ namespace CastleOfIdeas.Editor
                     source.spatialBlend = 1f;
                     source.volume = 1f;
                     source.dopplerLevel = 0f;
-                    source.minDistance = 3f;
-                    source.maxDistance = 16f;
-                    source.rolloffMode = AudioRolloffMode.Logarithmic;
-                    source.outputAudioMixerGroup = null;
+                    source.minDistance = 1f;
+                    source.maxDistance = 20f;
+                    source.rolloffMode = AudioRolloffMode.Custom;
+                    var distances = room == "MAIN"
+                        ? new[] { 0f, 5f, 7f, 9f, 11f, 14f, 20f }
+                        : new[] { 0f, 5f, 7f, 10f, 12f, 16f, 20f };
+                    var levels = room == "MAIN"
+                        ? new[] { 1f, 1f, .8f, .55f, .3f, .08f, 0f }
+                        : new[] { 1f, 1f, .85f, .65f, .5f, .08f, 0f };
+                    var curve = new AnimationCurve(distances.Select((distance, i) => new Keyframe(distance / source.maxDistance, levels[i])).ToArray());
+                    // Piecewise linear tangents avoid overshoot or negative gains.
+                    for (var i = 0; i < curve.length; i++)
+                    {
+                        AnimationUtility.SetKeyLeftTangentMode(curve, i, AnimationUtility.TangentMode.Linear);
+                        AnimationUtility.SetKeyRightTangentMode(curve, i, AnimationUtility.TangentMode.Linear);
+                    }
+                    source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, curve);
+                    source.outputAudioMixerGroup = mixer;
                     var entry = Activator.CreateInstance(entryType);
                     TrySetEnumField(entry, "type", channel == "L" ? "FrontLeft" : "FrontRight");
                     TrySetField(entry, "audioSource", source);
@@ -1283,6 +1319,10 @@ namespace CastleOfIdeas.Editor
                 mixer,
                 startSnapshotProperty.GetValue(mixer)
             );
+            // AudioSource.volume is capped at 1; apply the requested 1.1x
+            // baseline in the native mixer (+0.82785 dB), without a runtime script.
+            setVolumeMethod.Invoke(masterGroup, new object[] { mixer, startSnapshotProperty.GetValue(mixer), 20f * Mathf.Log10(1.1f) });
+            EditorUtility.SetDirty(mixer);
             AssetDatabase.SaveAssets();
         }
 

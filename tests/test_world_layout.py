@@ -1,4 +1,5 @@
 import json
+import math
 import hashlib
 import re
 import unittest
@@ -85,7 +86,7 @@ class WorldLayoutTest(unittest.TestCase):
         )
         self.assertEqual(program["runtimeControls"]["panel"], "removed-for-early-access")
         self.assertTrue(program["runtimeControls"]["autoplay"])
-        self.assertEqual(program["runtimeControls"]["defaultVolumeDb"], 0.0)
+        self.assertAlmostEqual(program["runtimeControls"]["defaultVolumeDb"], 20 * math.log10(1.1), places=6)
 
     def test_portal_has_an_independent_optional_hls_receiver(self):
         portal = self.layout["mediaTopology"]["portalBridge"]

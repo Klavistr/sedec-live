@@ -915,7 +915,7 @@ def create_speakers_and_sign(config: dict) -> None:
         bounds = config["dimensions"][room.lower()]
         x,y,z = screen["center"]
         for ch, sign in (("L",-1),("R",1)):
-            offset = sign * (screen["width"]/2 + .30)
+            offset = sign * (screen["width"]/2 + (.30 + spec["mainProjectionClearance"] + spec["width"]/2 if room == "MAIN" else .30))
             # The rear face touches the room wall behind the lecture display.
             center = (x+offset,bounds["maxY"]-.1-spec["depth"]/2,z) if room == "MAIN" else (bounds["minX"]+.1+spec["depth"]/2,y+offset,z)
             root = empty(f"SPEAKER_{room}_{ch}",center,0 if room == "MAIN" else math.pi/2,target_collection="Screens")
@@ -933,6 +933,30 @@ def create_speakers_and_sign(config: dict) -> None:
     w,h = config['screens']['portal']['width'],config['screens']['portal']['height']
     box('WELCOME_BOARD_BACKING',(17.5,5.475,1.5),(w,.025,h),'MAT_BLACKOUT',target_collection='Screens',bevel=0)
     video_surface('WELCOME_BOARD_SURFACE',(17.5,5.461,1.5),w,h,'south','MAT_WELCOME_BOARD')
+
+
+def align_corridor_finished_faces(config: dict) -> None:
+    """The nominal corridor boundaries are clear faces, not wall centrelines.
+
+    Move the complete north partition (including its wallpaper and blue skin)
+    outward together. Keep the floor-plan coordinates and room furniture fixed.
+    """
+    half_wall = config["dimensions"]["wallThickness"] / 2
+    north_shift = half_wall + config["corridorFinish"]["blueFacingThickness"]
+    for obj in bpy.data.objects:
+        if obj.name.startswith(("SUB_WALL_SOUTH_", "CORRIDOR_BLUE_SUB_", "ALICE_WALLPAPER_S_")) or obj.name in (
+            "SUB_WALL_DOOR_HEADER", "SUB_WALL_FRONT_DOOR_HEADER", "WELCOME_BOARD_BACKING", "WELCOME_BOARD_SURFACE"
+        ):
+            obj.location.y += north_shift
+        elif obj.name.startswith("CORRIDOR_WALL_SOUTH_") or obj.name == "CORRIDOR_WALL_ELEVATOR_HEADER":
+            obj.location.y -= half_wall
+    # Cover the shifted blue head and both jambs from the cabin side as well.
+    bpy.data.objects["ELEVATOR_FRONT_HEADER_LINING"].location.y -= half_wall
+    for name in ("ELEVATOR_DOOR_HEAD_REVEAL", "ELEVATOR_DOOR_REVEAL_LEFT", "ELEVATOR_DOOR_REVEAL_RIGHT"):
+        reveal = bpy.data.objects[name]
+        reveal.location.y -= half_wall / 2
+        for vertex in reveal.data.vertices:
+            vertex.co.y *= (config["dimensions"]["wallThickness"] + .05 + half_wall) / (config["dimensions"]["wallThickness"] + .05)
 
 
 def trim_coplanar_intersections() -> None:
@@ -1306,6 +1330,7 @@ def main() -> None:
     create_media_markers(config)
     create_portal(config["screens"]["portal"])
     create_speakers_and_sign(config)
+    align_corridor_finished_faces(config)
     trim_coplanar_intersections()
     create_lighting(config)
     create_markers(config)

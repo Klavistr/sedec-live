@@ -299,7 +299,8 @@ in this README or in build-info.json, but it can be extracted from the world bun
 do not redistribute this ZIP. The main and sub lecture screens share one program
 player and start it automatically. Start the broadcast before opening the world.
 The beta build has no in-world media control panel. Reopen the world if
-the feed was unavailable at startup. Initial program volume is 0 dB.
+the feed was unavailable at startup. Initial program gain is 1.1x (+0.83 dB),
+with gentle distance attenuation through each room and both rooms audible in the hall.
 
 The 70-inch-scale portal is on the far wall of the main lecture hall, directly
 opposite its corridor entrance. Its independent HLS receiver starts only when
@@ -313,7 +314,7 @@ streaming delay and is not a low-latency, bidirectional voice connection.
             return $@"{{
   ""name"": ""Castle of Ideas"",
   ""kind"": ""windows-preview"",
-  ""worldVersion"": ""0.5.1"",
+  ""worldVersion"": ""0.5.2"",
   ""localEditorIdentifier"": ""{localEditorIdentifier}"",
   ""unityVersion"": ""{Application.unityVersion}"",
   ""cckVersion"": ""{cckVersion}"",
@@ -323,7 +324,7 @@ streaming delay and is not a low-latency, bidirectional voice connection.
   ""runtimeReceiverUrlInput"": false,
   ""launcherVersion"": 2,
   ""mediaControlPanel"": false,
-  ""defaultVolumeDb"": 0,
+  ""defaultVolumeDb"": 0.8278537,
   ""releaseStage"": ""beta"",
   ""externalDiagnostics"": true,
   ""portalVideoPlayers"": 1,
