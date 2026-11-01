@@ -314,7 +314,7 @@ streaming delay and is not a low-latency, bidirectional voice connection.
             return $@"{{
   ""name"": ""Castle of Ideas"",
   ""kind"": ""windows-preview"",
-  ""worldVersion"": ""0.5.2"",
+  ""worldVersion"": ""0.5.3"",
   ""localEditorIdentifier"": ""{localEditorIdentifier}"",
   ""unityVersion"": ""{Application.unityVersion}"",
   ""cckVersion"": ""{cckVersion}"",
