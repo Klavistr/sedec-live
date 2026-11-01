@@ -149,6 +149,8 @@ namespace CastleOfIdeas.Editor
             var welcome = FindDeepChild(root,"WELCOME_BOARD_SURFACE").position;
             Render("unity-welcome",new Vector3(welcome.x,1.55f,-2.7f),welcome,72f);
             Render("unity-elevator",new Vector3(welcome.x,1.55f,-3.8f),new Vector3(welcome.x,1.3f,-1.3f),75f);
+            Render("unity-elevator-hall-junction",new Vector3(welcome.x+1f,2.1f,-5f),new Vector3(welcome.x,2.6f,-3.9f),75f);
+            Render("unity-corridor-ceiling",new Vector3(entrance.x-1.2f,2.1f,entrance.z),new Vector3(arrival.x,2.95f,entrance.z),85f);
             var portal = FindDeepChild(root,"PORTAL_BRIDGE_SURFACE").position;
             foreach (var ps in FindDeepChild(root,"PORTAL_MIST").GetComponentsInChildren<ParticleSystem>()) ps.Simulate(2,true,true,true);
             Render("unity-portal",portal+Vector3.right*3.2f,portal,72f);
@@ -533,6 +535,28 @@ namespace CastleOfIdeas.Editor
             var corridorNorth = FindDeepChild(worldRoot.transform, "CORRIDOR_BLUE_SUB_FACE_EAST").GetComponent<Renderer>().bounds;
             if (Mathf.Abs(corridorSouth.min.z - corridorNorth.max.z - 1.6f) > .003f)
                 errors.Add("Corridor finished faces must leave exactly 1.6 metres clear.");
+            var roofs = new[] {"MAIN", "SUB", "CORRIDOR"}.Select(room =>
+                FindDeepChild(worldRoot.transform, room+"_CEILING").GetComponent<Renderer>().bounds).ToArray();
+            foreach (var wall in worldRoot.GetComponentsInChildren<Renderer>().Where(r =>
+                (r.name.Contains("_WALL_") || r.name.StartsWith("CORRIDOR_BLUE_") || r.name.StartsWith("MAIN_PILASTER_"))
+                && Mathf.Abs(r.bounds.max.y-3f)<.003f))
+                foreach (var x in new[] {wall.bounds.min.x, wall.bounds.max.x})
+                    foreach (var z in new[] {wall.bounds.min.z, wall.bounds.max.z})
+                        if (!roofs.Any(b=>x>=b.min.x-.003f && x<=b.max.x+.003f && z>=b.min.z-.003f && z<=b.max.z+.003f))
+                            errors.Add("Ceiling does not cover a full-height wall corner: "+wall.name);
+            if (Mathf.Abs(roofs[0].max.x-roofs[1].min.x)>.003f
+                || Mathf.Abs(roofs[0].max.x-roofs[2].min.x)>.003f
+                || Mathf.Abs(roofs[1].max.z-roofs[2].min.z)>.003f)
+                errors.Add("Main, Alice and corridor roof slabs must meet without gaps or coplanar overlaps.");
+            foreach (var name in new[] {"ELEVATOR_CEILING", "ELEVATOR_WALL_WEST", "ELEVATOR_WALL_EAST"})
+                if (FindDeepChild(worldRoot.transform,name).GetComponent<Renderer>().bounds.min.z < -3.781f)
+                    errors.Add("Silver cabin solid reaches the blue hall partition and may flicker: "+name);
+            foreach (var side in new[] {"W", "E"})
+            {
+                var pier=FindDeepChild(worldRoot.transform,"MAIN_PILASTER_"+side+"_02").GetComponent<Renderer>().bounds;
+                if (Mathf.Abs(pier.size.x-pier.size.z)>.003f)
+                    errors.Add("Rear corner pier must have a square footprint: "+side);
+            }
             foreach (var room in new[] {"MAIN","SUB"})
             {
                 var prefix=room=="MAIN" ? "Main Warm Fill " : "Sub Soft Warm Fill ";

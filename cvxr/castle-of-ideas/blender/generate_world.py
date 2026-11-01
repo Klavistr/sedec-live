@@ -587,6 +587,11 @@ def create_architecture(config: dict) -> None:
         pier_width = (right - left) / (px1 - px0) * (main["maxX"] - main["minX"])
         pier_depth = (bottom - top) / (py1 - py0) * main_depth
         y = main["maxY"] - ((top + bottom) / 2 - py0) / (py1 - py0) * main_depth
+        if index == len(config["mainPiers"]["rectanglesPixels"])-1:
+            # Requested game-space adaptation: square rear corner piers,
+            # extending inward from the rear datum rather than its old centre.
+            pier_depth = pier_width
+            y = main["minY"] + pier_depth / 2
         for side, x in (("W", main["minX"] + pier_width / 2), ("E", main["maxX"] - pier_width / 2)):
             if side == "W" and index == 1:
                 continue  # Clear the entrance-side pillar at the user's request.
@@ -957,6 +962,38 @@ def align_corridor_finished_faces(config: dict) -> None:
         reveal.location.y -= half_wall / 2
         for vertex in reveal.data.vertices:
             vertex.co.y *= (config["dimensions"]["wallThickness"] + .05 + half_wall) / (config["dimensions"]["wallThickness"] + .05)
+    # Cabin solids used to end exactly on the hallway's blue front face,
+    # causing the silver ceiling edge and side walls to fight that same plane.
+    # Terminate them behind the blue partition's rear face instead.
+    cabin_end = config["dimensions"]["corridor"]["minY"] - 2*half_wall - .02
+    for name in ("ELEVATOR_CEILING", "ELEVATOR_WALL_WEST", "ELEVATOR_WALL_EAST"):
+        obj = bpy.data.objects[name]
+        for vertex in obj.data.vertices:
+            if obj.location.y + vertex.co.y > cabin_end:
+                vertex.co.y = cabin_end - obj.location.y
+    head = bpy.data.objects["ELEVATOR_DOOR_HEAD_REVEAL"]
+    head.location.z -= .003
+    for name in ("ELEVATOR_DOOR_REVEAL_LEFT", "ELEVATOR_DOOR_REVEAL_RIGHT"):
+        obj = bpy.data.objects[name]
+        for vertex in obj.data.vertices:
+            if obj.location.z + vertex.co.z > config["dimensions"]["doorHeight"] - .003:
+                vertex.co.z = config["dimensions"]["doorHeight"] - .003 - obj.location.z
+
+    # Roof ownership is partitioned at the shared boundaries, so the slabs
+    # cover the wall thickness without creating coplanar overlapping ceilings.
+    dims = config["dimensions"]
+    main, sub, hall = dims["main"], dims["sub"], dims["corridor"]
+    split_x = main["minX"] - half_wall
+    roofs = {
+        "MAIN": (split_x, main["maxX"]+half_wall, main["minY"]-half_wall, main["maxY"]+half_wall),
+        "SUB": (sub["minX"]-half_wall, split_x, hall["maxY"], sub["maxY"]+half_wall),
+        "CORRIDOR": (hall["minX"]-half_wall, split_x, hall["minY"]-2*half_wall, hall["maxY"]),
+    }
+    for room, (x0,x1,y0,y1) in roofs.items():
+        obj = bpy.data.objects[room+"_CEILING"]
+        for vertex in obj.data.vertices:
+            vertex.co.x = (x0 if vertex.co.x < 0 else x1) - obj.location.x
+            vertex.co.y = (y0 if vertex.co.y < 0 else y1) - obj.location.y
 
 
 def trim_coplanar_intersections() -> None:

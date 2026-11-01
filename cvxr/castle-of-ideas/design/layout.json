@@ -90,6 +90,7 @@
     "fireEffect": "native-unity-particles-procedural-shader"
   },
   "mainPiers": {
+    "rearFootprint": "square-matching-width-anchored-at-rear-wall",
     "source": "venue plan pixel rectangles, measured against the 8200 x 12100 mm main room; not survey-grade CAD",
     "planRoomPixels": [170, 170, 600, 811],
     "rectanglesPixels": [[565,170,600,212],[565,590,600,644],[565,790,600,811]],
