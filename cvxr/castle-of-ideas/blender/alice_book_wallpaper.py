@@ -7,6 +7,50 @@ import random
 import re
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
+ILLUSTRATION_SEED = 241101
+
+
+def available_line_spans(left, right, y, pitch, contours):
+    """Subtract merged outer-ink silhouettes across the whole text line band."""
+    blocked = []
+    for start_y, rows in contours:
+        spans = [span for span in rows[max(0, y-start_y):max(0, min(len(rows), y+pitch-start_y))] if span]
+        if spans:
+            a, b = max(left, min(s[0] for s in spans)), min(right, max(s[1] for s in spans))
+            if a < b:
+                blocked.append((a, b))
+    cursor, available = left, []
+    for a, b in sorted(blocked):
+        if a > cursor:
+            available.append((cursor, a))
+        cursor = max(cursor, b)
+    if cursor < right:
+        available.append((cursor, right))
+    return available
+
+
+def compose_line(words, cursor, left, right, measure, space, minimum_words=1):
+    """Fit whole words atomically, then distribute space to justify the span.
+
+    A rejected short contour fragment consumes no words: the pending words
+    remain available for the following line, rather than becoming an island.
+    """
+    widths, end = [], cursor
+    while end < len(words):
+        width = measure(words[end])
+        if sum(widths) + width + space * len(widths) > right-left:
+            break
+        widths.append(width)
+        end += 1
+    if len(widths) < minimum_words:
+        return [], cursor
+    gap = (right-left-sum(widths))/(len(widths)-1) if len(widths)>1 else 0
+    positions, x = [], left
+    for index, width in enumerate(widths):
+        positions.append((x, words[cursor+index]))
+        x += width+gap
+    return positions, end
+
 
 def clean_literary_text(text):
     text = re.sub(r"(?m)^[ \t]*(?:[*_=\-][ \t]*){3,}$", "", text)
@@ -95,12 +139,15 @@ def create_book_wallpaper(root, font_name, font_file, source_dir, output_dir):
     review.mkdir(parents=True,exist_ok=True)
     page_images,page_records,placements,used_texts = [],[],[],[]
     illustration_layers,text_layers = [],[]
+    review_lines, total_deferred = [], 0
     for chapter,count in zip(chapters,allocation):
         chapter_art = [a for a in catalog if a["chapter"]==chapter["number"]]
+        art_rng = random.Random(ILLUSTRATION_SEED + chapter["number"] * 101)
+        art_rng.shuffle(chapter_art)
         prepared = []
         for local_page in range(count):
             page_number = len(page_images)+local_page+1
-            rng = random.Random(241029+page_number*101)
+            rng = random.Random(ILLUSTRATION_SEED+page_number*101)
             pictures = Image.new("RGBA",(page_width,height))
             boxes,contours,art_records = [],[],[]
             for art in chapter_art[local_page::count]:
@@ -119,13 +166,15 @@ def create_book_wallpaper(root, font_name, font_file, source_dir, output_dir):
                 contours.append(contour_rows(image,x,y,round(.025*ppm)))
                 art_records.append({"source":art["file"],"number":art["number"],"chapter":art["chapter"],
                                     "rect":list(rect),"page":page_number})
-            mesh,lens = lens_mesh(page_width,height,rng)
+            # Keep the approved page distortion independent of illustration layout.
+            mesh,lens = lens_mesh(page_width,height,random.Random(241029+page_number*101))
             prepared.append((page_number,pictures,contours,art_records,mesh,lens))
         words = chapter["text"].split()
         for font_size in range(15,30):
             font = ImageFont.truetype(font_file,font_size)
             heading_font = ImageFont.truetype(font_file,23)
             cursor,rendered = 0,[]
+            line_records, deferred_fragments = [], 0
             exhausted = False
             for local_page,(number,pictures,contours,art_records,mesh,lens) in enumerate(prepared):
                 text = Image.new("RGBA",(page_width,height))
@@ -135,31 +184,38 @@ def create_book_wallpaper(root, font_name, font_file, source_dir, output_dir):
                 start = cursor
                 # Genuine two-column page composition, with a narrow gutter.
                 gutter,margin,pitch = 14,8,font_size+3
+                ink_height = max(pitch, font.getbbox("AgjpQ")[3]+1)
                 column_width = (page_width-2*margin-gutter)//2
                 for column in range(2):
                     left = margin+column*(column_width+gutter)
                     right = left+column_width
                     for y in range(49,height-font_size-3,pitch):
-                        x = left
-                        while x<right:
+                        spans = available_line_spans(left, right, y, ink_height, contours)
+                        contoured = spans != [(left, right)]
+                        for a, b in spans:
                             if cursor>=len(words): exhausted=True;break
-                            word = words[cursor]
-                            advance = math.ceil(font.getlength(word))+max(3,font_size//4)
-                            if x+advance>right: break
-                            collision = None
-                            for start_y,rows in contours:
-                                spans=[s for s in rows[max(0,y-start_y):max(0,min(len(rows),y+pitch-start_y))] if s]
-                                if spans:
-                                    a,b=min(s[0] for s in spans),max(s[1] for s in spans)
-                                    if x<b and x+advance>a:collision=b;break
-                            if collision:
-                                x=collision+1;continue
-                            draw.text((x,y),word,fill=ink+(255,),font=font)
-                            x+=advance;cursor+=1
+                            before = cursor
+                            positions, end = compose_line(words, cursor, a, b, font.getlength,
+                                                          max(3,font_size//4), 3 if contoured else 1)
+                            if not positions:
+                                deferred_fragments += 1
+                                # Skip only this narrow pocket, preserving the
+                                # phrase for the next usable line span. A wide
+                                # span on the other side of the art stays usable.
+                                continue
+                            for x, word in positions:
+                                draw.text((x,y),word,fill=ink+(255,),font=font)
+                            cursor = end
+                            line_records.append({"page":number,"column":column,"y":y,"span":[a,b],
+                                                 "wordStart":before,"wordEnd":end,"contoured":contoured,
+                                                 "rightEdge":positions[-1][0]+font.getlength(positions[-1][1])})
                 rendered.append((text,start,cursor))
             if not exhausted: break
         else: raise ValueError("Could not fill chapter pages without repeating text")
         for (number,pictures,contours,art_records,mesh,lens),(text,start,end) in zip(prepared,rendered):
+            proof=Image.new("RGBA",(page_width,height),paper+(255,))
+            proof.alpha_composite(pictures);proof.alpha_composite(text)
+            proof.convert("RGB").save(review/f"page-{number:02d}-typeset.png")
             pictures=pictures.transform(pictures.size,Image.Transform.MESH,mesh,Image.Resampling.BICUBIC)
             text=text.transform(text.size,Image.Transform.MESH,mesh,Image.Resampling.BICUBIC)
             page=Image.new("RGBA",(page_width,height),paper+(255,))
@@ -176,6 +232,9 @@ def create_book_wallpaper(root, font_name, font_file, source_dir, output_dir):
                                  "excerpt":str(excerpt_path.relative_to(root)),
                                  "textSha256":hashlib.sha256(excerpt.encode()).hexdigest()})
             placements.extend(art_records)
+        # Retain the accepted font-size trial only, never discarded candidates.
+        review_lines.extend(line_records)
+        total_deferred += deferred_fragments
     atlas_width=page_width*len(page_images)
     canvas=Image.new("RGB",(atlas_width,height),paper)
     for i,page in enumerate(page_images):canvas.paste(page,(i*page_width,0))
@@ -197,10 +256,25 @@ def create_book_wallpaper(root, font_name, font_file, source_dir, output_dir):
                         "outputSha256":hashlib.sha256(target.read_bytes()).hexdigest(),"fontFamily":font_name,
                         "canvasCropPixels":[offset,0,offset+length,height]})
         offset+=length
-    spec={"schemaVersion":3,"seed":241029,"pixelsPerMeter":ppm,"pageSizePixels":[page_width,height],
+    page_chapters = {p["number"]:p["chapter"] for p in page_records}
+    source_chapters = {a["file"]:a["chapter"] for a in catalog}
+    if len(placements)!=len(catalog) or len({a["source"] for a in placements})!=len(catalog):
+        raise ValueError("Every original illustration must be placed exactly once")
+    if any(a["chapter"]!=page_chapters[a["page"]] or a["chapter"]!=source_chapters[a["source"]] for a in placements):
+        raise ValueError("Illustration chapter does not match its page text")
+    for line in review_lines:
+        count = line["wordEnd"]-line["wordStart"]
+        if line["contoured"] and count < 3:
+            raise ValueError("An isolated contour fragment has fewer than three words")
+        if count > 1 and abs(line["rightEdge"]-line["span"][1]) > .01:
+            raise ValueError("A text line is not justified to its available span")
+    (review/"typesetting-audit.json").write_text(json.dumps({"lines":review_lines,"deferredFragments":total_deferred},indent=2)+"\n")
+    spec={"schemaVersion":4,"seed":241029,"illustrationSeed":ILLUSTRATION_SEED,"pixelsPerMeter":ppm,"pageSizePixels":[page_width,height],
           "pageAspect":"ISO B: width/height = 1/sqrt(2)","pageCount":len(page_images),
           "atlasHorizontalFitScale":wall_width/atlas_width,"canvasSizePixels":[wall_width,height],
           "wallOrder":["north","east","south","west"],"contourClearanceMeters":.025,
+          "textAlignment":"justified-per-contour-span","minimumContourWords":3,"shortFragmentPolicy":"defer-to-next-line",
+          "chapterPlacementAudit":{"illustrations":len(placements),"mismatches":0,"duplicates":0},
           "removedFormatting":["asterisk separator rows","rule-only separator rows","illustration placeholders"],
           "repeatedText":False,"repeatedIllustrations":False,"textWordsPlaced":sum(p["wordEnd"]-p["wordStart"] for p in page_records),
           "pages":page_records,"placements":placements,"sourceHashes":{a["file"]:a["sha256"] for a in catalog},

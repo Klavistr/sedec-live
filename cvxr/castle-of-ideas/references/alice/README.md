@@ -54,6 +54,18 @@ and hashes are in `illustrations.json`; `blender/fetch_alice_illustrations.py`
 fetches these source files using curl and the operating system certificate store.
 
 Text follows outer ink contours with 2.5 cm clearance before distortion.
+Each column's lines are fully justified within the available contour spans by
+adjusting spaces between whole words. If a contour span cannot fit at least
+three words, it remains empty and the pending text moves to the following line.
+The line collision band includes font descenders. Illustration positions and
+their distribution among pages within the same chapter are shuffled separately
+from the page distortion. The reproducible illustration seed and a chapter
+consistency audit are recorded in the layout; all 42 catalog entries must occur
+exactly once and match both their catalog chapter and their page text chapter.
+The ignored `preview/alice-wallpaper/typesetting-audit.json` records each placed
+line's word range, contour span and right edge for verification. To test the
+line composer with the existing Pillow interpreter, run
+`"$PHOTO_PYTHON" cvxr/castle-of-ideas/blender/test_alice_typesetting.py`.
 Asterisk/rule-only separator rows and illustration placeholders are removed from
 the derived text; the unmodified source retains them. No modern venue artwork
 is copied. Four distinct wall cuts cover all sides, with the south door cut out

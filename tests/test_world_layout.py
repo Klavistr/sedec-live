@@ -269,8 +269,12 @@ class WorldLayoutTest(unittest.TestCase):
         self.assertFalse(panorama["repeatedIllustrations"])
         self.assertEqual(len({p["number"] for p in panorama["placements"]}), 42)
         pages = {p["number"]:p for p in panorama["pages"]}
+        catalog = {a["file"]:a for a in json.loads((WORLD_PATH / "references/alice/illustrations.json").read_text())["illustrations"]}
         for illustration in panorama["placements"]:
             self.assertEqual(illustration["chapter"], pages[illustration["page"]]["chapter"])
+            self.assertEqual(illustration["chapter"], catalog[illustration["source"]]["chapter"])
+        self.assertEqual(panorama["textAlignment"], "justified-per-contour-span")
+        self.assertEqual(panorama["minimumContourWords"], 3)
         ends = {}
         for page in panorama["pages"]:
             self.assertEqual(page["lens"]["type"],"smooth-wave-refraction")
