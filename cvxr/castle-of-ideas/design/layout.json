@@ -108,10 +108,10 @@
         "receiverUrl": "build-time-local-config",
         "panel": "removed-for-early-access",
         "autoplay": true,
-        "defaultVolumeDb": 0.8278537
+        "defaultVolumeDb": 6.0
       }
     },
-    "portalBridge": {"playerCount": 1, "outputs": ["portal"], "status": "optional-build-time-url", "transport": "https-hls", "configField": "portalReceiverUrl"}
+    "portalBridge": {"playerCount": 1, "outputs": ["portal"], "status": "optional-build-time-url", "transport": "https-hls", "configField": "portalReceiverUrl", "spatialAudio": "invisible-mono-point-at-display-centre", "defaultVolumeDb": 6.0, "distanceProfile": "main-room"}
   },
   "spawns": {
     "primary": {

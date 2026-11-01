@@ -26,9 +26,9 @@ namespace CastleOfIdeas.Editor
         {
             try
             {
-                var packagePath = await BuildWindowsPreview();
-                Debug.Log($"Castle of Ideas Windows Preview created at {packagePath}");
-                EditorUtility.RevealInFinder(packagePath);
+                var packages = await BuildAudioComparisonPreviews();
+                Debug.Log("Castle of Ideas audio comparison previews created: " + string.Join(", ", packages));
+                EditorUtility.RevealInFinder(Path.GetDirectoryName(packages[0]));
             }
             catch (Exception exception)
             {
@@ -45,8 +45,8 @@ namespace CastleOfIdeas.Editor
         {
             try
             {
-                var packagePath = await BuildWindowsPreview();
-                Debug.Log($"Castle of Ideas Windows Preview created at {packagePath}");
+                var packages = await BuildAudioComparisonPreviews();
+                Debug.Log("Castle of Ideas audio comparison previews created: " + string.Join(", ", packages));
                 EditorApplication.Exit(0);
             }
             catch (Exception exception)
@@ -56,7 +56,20 @@ namespace CastleOfIdeas.Editor
             }
         }
 
-        private static async Task<string> BuildWindowsPreview()
+        private static async Task<string[]> BuildAudioComparisonPreviews()
+        {
+            if (SceneManager.GetActiveScene().path != ScenePath)
+                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            CastleOfIdeasWorldSetup.EnsureProgramAudioMixer();
+            var sourcePortal=UnityEngine.Object.FindObjectsOfType<CVRVideoPlayer>(true).Single(p=>p.name=="PORTAL_BRIDGE_PLAYER");
+            CastleOfIdeasWorldSetup.ConfigurePortalAudio(sourcePortal,sourcePortal.transform.root);
+            CastleOfIdeasWorldSetup.ValidateWorldScene();
+            var spatial = await BuildWindowsPreview(false);
+            var stereo = await BuildWindowsPreview(true);
+            return new[] { spatial, stereo };
+        }
+
+        private static async Task<string> BuildWindowsPreview(bool stereo)
         {
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.StandaloneWindows64)
             {
@@ -87,12 +100,17 @@ namespace CastleOfIdeas.Editor
             }
 
             var buildRoot = Path.Combine(projectRoot, "build");
-            var rawOutputPath = Path.Combine(buildRoot, "windows-preview-raw");
-            var packagePath = Path.Combine(buildRoot, PackageName);
+            var variant = stereo ? "stereo" : "spatial";
+            var variantPackageName = PackageName + "-" + variant;
+            var rawOutputPath = Path.Combine(buildRoot, "windows-preview-raw-" + variant);
+            var packagePath = Path.Combine(buildRoot, variantPackageName);
             RecreateDirectory(rawOutputPath);
             RecreateDirectory(packagePath);
 
-            var localEditorIdentifier = assetInfo.localEditorIdentifier;
+            // Separate local-test identities prevent one comparison version
+            // from being mistaken for the other by the client cache.
+            var sourceIdentifier = assetInfo.localEditorIdentifier;
+            var localEditorIdentifier = stereo ? "d1e2352a-106c-41f1-a31d-c93bec5c0f6c" : sourceIdentifier;
             var cckVersion = assetInfo.cckVersion;
             var receiverUrl = CastleOfIdeasStreamingConfig.RequireReceiverUrl();
             var originalRandomNumber = assetInfo.randomNum;
@@ -111,10 +129,14 @@ namespace CastleOfIdeas.Editor
                     BuildOutputPath = rawOutputPath
                 };
                 buildAsset = TempBuildAsset.Create(assetInfo, BuildPurpose.LocalTest);
+                buildAsset.AssetInfo.localEditorIdentifier = localEditorIdentifier;
                 CastleOfIdeasStreamingConfig.ApplyToBuildRoot(
                     buildAsset.RootObject,
                     receiverUrl
                 );
+                // CCK converts/removes authoring components during preprocessing;
+                // configure the native player before that conversion runs.
+                ConfigureComparisonAudio(buildAsset.RootObject, stereo);
                 buildAsset.ValidateAsset();
                 buildAsset.PreProcessAsset();
                 buildAsset.SaveChangesToAsset();
@@ -158,10 +180,16 @@ namespace CastleOfIdeas.Editor
                     .SingleOrDefault();
                 if (sourceAssetInfo != null)
                 {
+                    if (sourceAssetInfo.localEditorIdentifier != sourceIdentifier)
+                        throw new InvalidOperationException("A comparison build changed the source world identity.");
                     sourceAssetInfo.randomNum = originalRandomNumber;
                     EditorUtility.SetDirty(sourceAssetInfo);
                 }
                 EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
+                var sourceProgram = UnityEngine.Object.FindObjectsOfType<CVRVideoPlayer>(true)
+                    .Single(p => p.name == "PROGRAM_FEED_PLAYER");
+                if (sourceProgram.audioPlaybackMode != CVRVideoPlayer.AudioMode.RoomScale || sourceProgram.roomScaleAudioSources.Count != 4)
+                    throw new InvalidOperationException("A comparison build changed the source audio topology.");
             }
 
             if (string.IsNullOrEmpty(builtBundlePath) || !File.Exists(builtBundlePath))
@@ -176,6 +204,8 @@ namespace CastleOfIdeas.Editor
                 Path.Combine(packagePath, "launch-castle-of-ideas.cmd"),
                 CreateWindowsLauncher(localEditorIdentifier).Replace("\r\n", "\n").Replace("\n", "\r\n")
             );
+            File.Copy(Path.Combine(packagePath, "launch-castle-of-ideas.cmd"),
+                Path.Combine(packagePath, "launch-castle-of-ideas-" + variant + ".cmd"), true);
             File.WriteAllText(
                 Path.Combine(packagePath, "launch-castle-of-ideas-debug.cmd"),
                 CreateDebugLauncher().Replace("\r\n", "\n").Replace("\n", "\r\n")
@@ -184,13 +214,13 @@ namespace CastleOfIdeas.Editor
                 Path.Combine(packagePath, "watch-castle-of-ideas-log.ps1"),
                 CreateLogWatcher()
             );
-            File.WriteAllText(Path.Combine(packagePath, "README.txt"), CreateReadme());
+            File.WriteAllText(Path.Combine(packagePath, "README.txt"), CreateReadme(stereo));
             File.WriteAllText(
                 Path.Combine(packagePath, "build-info.json"),
-                CreateBuildInfo(localEditorIdentifier, cckVersion, !string.IsNullOrEmpty(CastleOfIdeasStreamingConfig.OptionalPortalReceiverUrl()))
+                CreateBuildInfo(localEditorIdentifier, cckVersion, !string.IsNullOrEmpty(CastleOfIdeasStreamingConfig.OptionalPortalReceiverUrl()), stereo)
             );
 
-            var zipPath = Path.Combine(buildRoot, PackageName + ".zip");
+            var zipPath = Path.Combine(buildRoot, variantPackageName + ".zip");
             if (File.Exists(zipPath))
             {
                 File.Delete(zipPath);
@@ -206,6 +236,49 @@ namespace CastleOfIdeas.Editor
                 File.WriteAllText(zipPath+".sha256",BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant()+"  "+Path.GetFileName(zipPath)+"\n");
 
             return zipPath;
+        }
+
+        private static void ConfigureComparisonAudio(GameObject root, bool stereo)
+        {
+            // For a world, CCK's RootObject is the descriptor child; the
+            // player and speakers are siblings under the complete scene root.
+            root = root.transform.root.gameObject;
+            var player = root.GetComponentsInChildren<CVRVideoPlayer>(true)
+                .Single(p => p.name == "PROGRAM_FEED_PLAYER");
+            if (stereo)
+            {
+                foreach (var output in player.roomScaleAudioSources)
+                {
+                    output.audioSource.enabled = false;
+                    output.audioSource.outputAudioMixerGroup = null;
+                }
+                player.roomScaleAudioSources.Clear();
+                player.customAudioSource = null;
+                player.audioPlaybackMode = CVRVideoPlayer.AudioMode.Direct;
+            }
+            player.playbackVolume = 1f;
+            var portal=root.GetComponentsInChildren<CVRVideoPlayer>(true).Single(p=>p.name=="PORTAL_BRIDGE_PLAYER");
+            var portalSource=portal.customAudioSource;
+            if (portalSource==null || portalSource.spatialBlend!=1f || portalSource.spread!=0f
+                || portalSource.outputAudioMixerGroup==null
+                || Vector3.Distance(portalSource.transform.position, root.GetComponentsInChildren<Transform>(true).Single(t=>t.name=="PORTAL_BRIDGE_SURFACE").position)>.001f
+                || portalSource.GetComponentsInChildren<Renderer>().Length!=0)
+                throw new InvalidOperationException("Portal audio must be an invisible mono point at the display centre.");
+            if (stereo)
+            {
+                portalSource.enabled=false;
+                portalSource.outputAudioMixerGroup=null;
+                portal.customAudioSource=null;
+                portal.audioPlaybackMode=CVRVideoPlayer.AudioMode.Direct;
+            }
+            portal.playbackVolume=1f;
+            if (portal.audioPlaybackMode!=(stereo ? CVRVideoPlayer.AudioMode.Direct : CVRVideoPlayer.AudioMode.AudioSource))
+                throw new InvalidOperationException("Portal audio comparison mode is incorrect.");
+            if (stereo ? player.audioPlaybackMode != CVRVideoPlayer.AudioMode.Direct || player.roomScaleAudioSources.Count != 0
+                       : player.audioPlaybackMode != CVRVideoPlayer.AudioMode.RoomScale || player.roomScaleAudioSources.Count != 4
+                         || player.roomScaleAudioSources.Any(s => !s.audioSource.enabled || s.audioSource.outputAudioMixerGroup == null))
+                throw new InvalidOperationException("Audio comparison variant configuration is invalid.");
+            Debug.Log("Castle of Ideas audio variant: " + (stereo ? "program and portal: stereo Direct / 0 dB / no distance attenuation" : "program: RoomScale stereo speakers; portal: invisible central mono point / both +6 dB"));
         }
 
         private static void RecreateDirectory(string path)
@@ -276,9 +349,10 @@ Get-Content -LiteralPath $logPath -Tail 250 -Wait | ForEach-Object {
 ";
         }
 
-        private static string CreateReadme()
+        private static string CreateReadme(bool stereo)
         {
-            return @"Castle of Ideas - Windows Preview
+            var mode = stereo ? "2D stereo / 0 dB / no distance attenuation" : "RoomScale spatial speakers / +6 dB / distance attenuation";
+            return "Audio comparison version: " + mode + "\n\n" + @"Castle of Ideas - Windows Preview
 
 Requirements:
 - Windows 10 or later
@@ -299,8 +373,13 @@ in this README or in build-info.json, but it can be extracted from the world bun
 do not redistribute this ZIP. The main and sub lecture screens share one program
 player and start it automatically. Start the broadcast before opening the world.
 The beta build has no in-world media control panel. Reopen the world if
-the feed was unavailable at startup. Initial program gain is 1.1x (+0.83 dB),
-with gentle distance attenuation through each room and both rooms audible in the hall.
+the feed was unavailable at startup. The spatial and stereo builds are separate
+world bundles with separate launchers. Close ChilloutVR before switching versions
+for a clean comparison. Use identical client/Windows/headset volume settings.
+Both program and portal use the selected variant. In the spatial version the
+portal is an invisible mono point at the display centre, with +6 dB gain and
+the same gentle distance curve as the main room. No speaker mesh is added.
+No Lua or in-world audio switching UI is used.
 
 The 70-inch-scale portal is on the far wall of the main lecture hall, directly
 opposite its corridor entrance. Its independent HLS receiver starts only when
@@ -309,12 +388,18 @@ streaming delay and is not a low-latency, bidirectional voice connection.
 ";
         }
 
-        private static string CreateBuildInfo(string localEditorIdentifier, string cckVersion, bool portalConfigured)
+        private static string CreateBuildInfo(string localEditorIdentifier, string cckVersion, bool portalConfigured, bool stereo)
         {
             return $@"{{
   ""name"": ""Castle of Ideas"",
   ""kind"": ""windows-preview"",
-  ""worldVersion"": ""0.5.3"",
+  ""worldVersion"": ""0.5.4"",
+  ""audioVariant"": ""{(stereo ? "stereo" : "spatial")}"",
+  ""audioPlaybackMode"": ""{(stereo ? "Direct" : "RoomScale")}"",
+  ""portalAudioMode"": ""{(stereo ? "Direct" : "AudioSource")}"",
+  ""portalAudioChannels"": ""{(stereo ? "stereo" : "mono")}"",
+  ""portalGainDb"": {(stereo ? 0 : 6)},
+  ""distanceAttenuation"": {(stereo ? "false" : "true")},
   ""localEditorIdentifier"": ""{localEditorIdentifier}"",
   ""unityVersion"": ""{Application.unityVersion}"",
   ""cckVersion"": ""{cckVersion}"",
@@ -324,7 +409,7 @@ streaming delay and is not a low-latency, bidirectional voice connection.
   ""runtimeReceiverUrlInput"": false,
   ""launcherVersion"": 2,
   ""mediaControlPanel"": false,
-  ""defaultVolumeDb"": 0.8278537,
+  ""defaultVolumeDb"": {(stereo ? 0 : 6)},
   ""releaseStage"": ""beta"",
   ""externalDiagnostics"": true,
   ""portalVideoPlayers"": 1,

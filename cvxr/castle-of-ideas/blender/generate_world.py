@@ -1115,7 +1115,7 @@ def create_portal(portal: dict) -> None:
     for marker_name, marker_location, role in (
         ("PORTAL_BRIDGE_PLAYER", toward_room(0.15, z), "independent-hls-player"),
         ("PORTAL_BRIDGE_VIEW_ANCHOR", toward_room(1.8, 1.65), "portal-viewpoint"),
-        ("PORTAL_BRIDGE_VOICE_ANCHOR", toward_room(0.5, 1.65), "portal-voice-anchor"),
+        ("PORTAL_BRIDGE_VOICE_ANCHOR", tuple(surface.location), "portal-voice-anchor"),
         ("PORTAL_BRIDGE_CAMERA_TARGET", toward_room(0.12, 1.65), "portal-camera-target"),
     ):
         marker = empty(

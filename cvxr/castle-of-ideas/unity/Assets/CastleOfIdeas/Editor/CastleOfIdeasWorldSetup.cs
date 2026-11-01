@@ -478,6 +478,12 @@ namespace CastleOfIdeas.Editor
             if (portalPlayerMarker == null || portalPlayerMarker.GetComponent(playerType) == null)
                 errors.Add("The independent portal HLS player is missing.");
             var portalComponent = portalPlayerMarker?.GetComponent(playerType);
+            var portalSource=GetFieldValue(portalComponent,"customAudioSource") as AudioSource;
+            if (portalSource==null || portalSource.spatialBlend!=1f || portalSource.spread!=0f
+                || portalSource.outputAudioMixerGroup==null || portalSource.rolloffMode!=AudioRolloffMode.Custom
+                || Vector3.Distance(portalSource.transform.position,portalSurface.position)>.001f
+                || portalSource.GetComponentsInChildren<Renderer>().Length!=0)
+                errors.Add("Portal audio must be an invisible mono point at the display centre with the room gain/attenuation profile.");
             if (portalComponent != null && !string.IsNullOrEmpty(GetFieldValue(GetFieldValue(portalComponent,"playOnAwakeObject"),"videoUrl") as string))
                 errors.Add("The source scene must not contain a baked portal URL.");
             var mainSurface = FindDeepChild(worldRoot.transform, "SCREEN_MAIN_SURFACE");
@@ -1139,15 +1145,17 @@ namespace CastleOfIdeas.Editor
             }
         }
 
-        private static void ConfigurePortalAudio(Component player, Transform root)
+        internal static void ConfigurePortalAudio(Component player, Transform root)
         {
             var anchor=FindDeepChild(root,"PORTAL_BRIDGE_VOICE_ANCHOR");
+            anchor.position=FindDeepChild(root,"PORTAL_BRIDGE_SURFACE").position;
             var go=FindOrCreate(root,"PORTAL_AUDIO_OUTPUT");
             go.transform.position=anchor.position;
             var source=go.GetComponent<AudioSource>(); if (!source) source=go.AddComponent<AudioSource>();
             source.playOnAwake=false; source.spatialBlend=1; source.volume=1;
-            source.minDistance=1; source.maxDistance=8; source.dopplerLevel=0;
-            source.rolloffMode=AudioRolloffMode.Logarithmic;
+            source.spread=0; source.panStereo=0; source.dopplerLevel=0;
+            ConfigureRoomDistanceCurve(source,"MAIN");
+            source.outputAudioMixerGroup=EnsureProgramAudioMixer();
             TrySetEnumField(player,"audioPlaybackMode","AudioSource");
             TrySetField(player,"customAudioSource",source);
             TrySetField(player,"playbackVolume",1f);
@@ -1170,23 +1178,7 @@ namespace CastleOfIdeas.Editor
                     source.spatialBlend = 1f;
                     source.volume = 1f;
                     source.dopplerLevel = 0f;
-                    source.minDistance = 1f;
-                    source.maxDistance = 20f;
-                    source.rolloffMode = AudioRolloffMode.Custom;
-                    var distances = room == "MAIN"
-                        ? new[] { 0f, 5f, 7f, 9f, 11f, 14f, 20f }
-                        : new[] { 0f, 5f, 7f, 10f, 12f, 16f, 20f };
-                    var levels = room == "MAIN"
-                        ? new[] { 1f, 1f, .8f, .55f, .3f, .08f, 0f }
-                        : new[] { 1f, 1f, .85f, .65f, .5f, .08f, 0f };
-                    var curve = new AnimationCurve(distances.Select((distance, i) => new Keyframe(distance / source.maxDistance, levels[i])).ToArray());
-                    // Piecewise linear tangents avoid overshoot or negative gains.
-                    for (var i = 0; i < curve.length; i++)
-                    {
-                        AnimationUtility.SetKeyLeftTangentMode(curve, i, AnimationUtility.TangentMode.Linear);
-                        AnimationUtility.SetKeyRightTangentMode(curve, i, AnimationUtility.TangentMode.Linear);
-                    }
-                    source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, curve);
+                    ConfigureRoomDistanceCurve(source,room);
                     source.outputAudioMixerGroup = mixer;
                     var entry = Activator.CreateInstance(entryType);
                     TrySetEnumField(entry, "type", channel == "L" ? "FrontLeft" : "FrontRight");
@@ -1202,7 +1194,22 @@ namespace CastleOfIdeas.Editor
             TrySetField(player, "playOnAwakeObject", null);
         }
 
-        private static AudioMixerGroup EnsureProgramAudioMixer()
+        private static void ConfigureRoomDistanceCurve(AudioSource source, string room)
+        {
+            source.minDistance=1f; source.maxDistance=20f;
+            source.rolloffMode=AudioRolloffMode.Custom;
+            var distances=room=="MAIN" ? new[] {0f,5f,7f,9f,11f,14f,20f} : new[] {0f,5f,7f,10f,12f,16f,20f};
+            var levels=room=="MAIN" ? new[] {1f,1f,.8f,.55f,.3f,.08f,0f} : new[] {1f,1f,.85f,.65f,.5f,.08f,0f};
+            var curve=new AnimationCurve(distances.Select((d,i)=>new Keyframe(d/source.maxDistance,levels[i])).ToArray());
+            for (var i=0;i<curve.length;i++)
+            {
+                AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);
+                AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);
+            }
+            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff,curve);
+        }
+
+        internal static AudioMixerGroup EnsureProgramAudioMixer()
         {
             EnsureAssetFolder(GeneratedPath);
             var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(ProgramAudioMixerPath);
@@ -1343,9 +1350,9 @@ namespace CastleOfIdeas.Editor
                 mixer,
                 startSnapshotProperty.GetValue(mixer)
             );
-            // AudioSource.volume is capped at 1; apply the requested 1.1x
-            // baseline in the native mixer (+0.82785 dB), without a runtime script.
-            setVolumeMethod.Invoke(masterGroup, new object[] { mixer, startSnapshotProperty.GetValue(mixer), 20f * Mathf.Log10(1.1f) });
+            // AudioSource.volume is capped at 1; use the native mixer for
+            // the requested +6 dB baseline, without a runtime script.
+            setVolumeMethod.Invoke(masterGroup, new object[] { mixer, startSnapshotProperty.GetValue(mixer), 6f });
             EditorUtility.SetDirty(mixer);
             AssetDatabase.SaveAssets();
         }
