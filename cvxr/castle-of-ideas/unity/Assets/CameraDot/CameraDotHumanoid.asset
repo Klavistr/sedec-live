@@ -552,7 +552,7 @@ Avatar:
         m_X: []
     m_RootMotionSkeletonIndexArray:
   m_TOS:
-    520511539: Hips/Spine/Chest/LeftShoulder
+    3314597735: Hips/Spine/Chest/Neck
     2447985961: Hips/Spine/Chest/RightShoulder
     1743606380: Hips/Spine/Chest/LeftShoulder/LeftUpperArm
     4077490990: Hips/Spine/Chest
@@ -571,8 +571,8 @@ Avatar:
     3779763589: Hips/Spine/Chest/RightShoulder/RightUpperArm/RightLowerArm
     3657918413: Hips/RightUpperLeg/RightLowerLeg/RightFoot/RightToes
     3738240529: Hips
+    520511539: Hips/Spine/Chest/LeftShoulder
     470039971: Hips/LeftUpperLeg/LeftLowerLeg
-    3314597735: Hips/Spine/Chest/Neck
     3897589023: Hips/Spine/Chest/RightShoulder/RightUpperArm/RightLowerArm/RightHand
   m_HumanDescription:
     serializedVersion: 3

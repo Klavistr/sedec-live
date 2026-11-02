@@ -22,7 +22,7 @@ namespace CastleOfIdeas.Editor
         private const string PrefabPath = Folder + "/Camera-Dot.prefab";
         private const string Identity = "88bd78c2-badc-46f7-a58f-06d34a189a01";
         private const float EyeHeight = 1.5f;
-        private const float StandOff = .4f;
+        private const float StandOff = .25f;
         private static float captureYaw;
 
         private static Transform CreateHumanoidRig(GameObject root)
@@ -84,12 +84,13 @@ namespace CastleOfIdeas.Editor
             var material = AssetDatabase.LoadAssetAtPath<Material>(Folder + "/Dot.mat");
             if (!material)
             {
-                material = new Material(Shader.Find("Standard"));
+                material = new Material(Shader.Find("CameraDot/Invisible"));
                 AssetDatabase.CreateAsset(material, Folder + "/Dot.mat");
             }
-            material.color = new Color(1f,.65f,.12f);
-            material.SetFloat("_Glossiness",.15f);
-            material.mainTexture = null;
+            material.shader=Shader.Find("CameraDot/Invisible");
+            if (!material.shader || material.shader.name!="CameraDot/Invisible")
+                throw new InvalidOperationException("Camera Dot invisible shader is missing.");
+            material.color = Color.clear;
             EditorUtility.SetDirty(material);
             var root = new GameObject("Camera Dot");
             try
@@ -110,15 +111,16 @@ namespace CastleOfIdeas.Editor
                 info.localEditorIdentifier = Identity;
                 info.randomNum = "12345678";
                 var dot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                dot.name = "Dot_10mm";
+                dot.name = "Invisible_Dot_1mm";
                 dot.transform.SetParent(head, false);
                 dot.transform.localPosition = new Vector3(0,0,-.04f);
-                dot.transform.localScale = Vector3.one*.01f;
+                dot.transform.localScale = Vector3.one*.001f;
                 UnityEngine.Object.DestroyImmediate(dot.GetComponent<Collider>());
                 var renderer = dot.GetComponent<MeshRenderer>();
                 renderer.sharedMaterial = material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
+                renderer.motionVectorGenerationMode=MotionVectorGenerationMode.ForceNoMotion;
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
                 if (!prefab || prefab.GetComponentsInChildren<Renderer>().Length != 1
                     || prefab.GetComponentsInChildren<Camera>().Length != 0
@@ -172,6 +174,17 @@ namespace CastleOfIdeas.Editor
                 camera.Render();
                 pixels.ReadPixels(new Rect(0,0,1920,1080),0,0); pixels.Apply();
                 File.WriteAllBytes(Path.Combine(package,"portal-camera-framing.png"),pixels.EncodeToPNG());
+                // Make the otherwise tiny object large and put it directly in
+                // front of the lens: it must still alter no rendered pixels.
+                var baseline=pixels.GetRawTextureData<byte>().ToArray();
+                var dot=avatar.GetComponentsInChildren<Renderer>().Single().transform;
+                dot.position=camera.transform.position+camera.transform.forward*.4f;
+                dot.localScale=Vector3.one*.3f;
+                camera.Render();
+                pixels.ReadPixels(new Rect(0,0,1920,1080),0,0); pixels.Apply();
+                if (!baseline.SequenceEqual(pixels.GetRawTextureData<byte>().ToArray()))
+                    throw new InvalidOperationException("Invisible Camera Dot changed the camera image.");
+                Debug.Log("Camera Dot invisibility render audit passed: enlarged mesh in front of lens changed zero pixels.");
                 var proofDirectory=Path.GetFullPath(Path.Combine(Application.dataPath,"../../preview"));
                 Directory.CreateDirectory(proofDirectory);
                 File.WriteAllBytes(Path.Combine(proofDirectory,"camera-dot-framing.png"),pixels.EncodeToPNG());
@@ -191,7 +204,7 @@ namespace CastleOfIdeas.Editor
                 EditorSceneManager.OpenScene("Assets/CastleOfIdeas/Scenes/Castle-of-Ideas.unity", OpenSceneMode.Single);
             CreateSource();
             var buildRoot=Path.GetFullPath(Path.Combine(Application.dataPath,"../build"));
-            var package=Path.Combine(buildRoot,"camera-dot-windows-preview");
+            var package=Path.Combine(buildRoot,"camera-dot-windows-preview-v0.1.1");
             Directory.CreateDirectory(package);
             Directory.CreateDirectory(Path.Combine(buildRoot,"camera-dot-raw"));
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
@@ -231,12 +244,14 @@ endlocal
 ";
             File.WriteAllText(Path.Combine(package,"launch-camera-dot.cmd"),launcher.Replace("\r\n","\n").Replace("\n","\r\n"));
             File.WriteAllText(Path.Combine(package,"README.txt"),
-                "Camera Dot 0.1.0 - Windows Local Test\n\n"+
+                "Camera Dot 0.1.1 - Windows Local Test\n\n"+
                 "Open a Castle of Ideas world preview first, then run launch-camera-dot.cmd.\n"+
                 "This loads an avatar, not a world. It does not teleport you.\n"+
-                "Stand 0.4 m in front of the portal centre, with your back to its wall. Face the lecture-room centre (about 35 degrees toward the screen from straight west).\n"+
+                "The reference images stand 0.25 m in front of the portal centre. Actual minimum distance depends on CVR's player collision.\n"+
+                "Face the lecture-room centre, with your back to the portal wall.\n"+
                 "The invisible skeleton is a standard humanoid rig. Normal CVR movement/collision applies; no noclip or teleport script is included.\n"+
-                "The viewpoint is 1.5 m above the floor. The only visible mesh is a 10-mm dot behind the viewpoint.\n"+
+                "The viewpoint is 1.5 m above the floor. The 1-mm mesh writes no colour or depth and casts no shadow.\n"+
+                "Making the mesh invisible does not shrink CVR's movement collider. The avatar/root scale and humanoid rig stay normal size.\n"+
                 "Use Desktop mode for a fixed shot. Capture the first-person game window in OBS at 16:9; hide HUD/nameplates using client settings.\n"+
                 "The included framing images use a 60-degree vertical field of view; match this in the client if available, or adjust by eye.\n"+
                 "portal-camera-framing.png faces the room centre; portal-camera-straight.png faces perpendicular to the portal wall.\n"+
@@ -245,8 +260,8 @@ endlocal
                 "Upload the editable prefab through CCK later if other people must see the dot avatar. No online upload was performed.\n"+
                 "Mute the capture client's mic if the real-venue monitor audio could feed back into it.\n");
             File.WriteAllText(Path.Combine(package,"build-info.json"),
-                "{\n  \"name\": \"Camera Dot\",\n  \"version\": \"0.1.0\",\n  \"localEditorIdentifier\": \""+Identity+"\",\n"+
-                "  \"eyeHeightMeters\": 1.5,\n  \"dotDiameterMeters\": 0.01,\n  \"rig\": \"humanoid\",\n  \"portalStandOffMeters\": 0.4,\n"+
+                "{\n  \"name\": \"Camera Dot\",\n  \"version\": \"0.1.1\",\n  \"localEditorIdentifier\": \""+Identity+"\",\n"+
+                "  \"eyeHeightMeters\": 1.5,\n  \"dotDiameterMeters\": 0.001,\n  \"visibleGeometry\": false,\n  \"movementCollision\": \"client-controlled-unchanged\",\n  \"rig\": \"humanoid\",\n  \"portalStandOffMeters\": 0.25,\n"+
                 "  \"standingPointUnity\": "+JsonUtility.ToJson(stand)+",\n  \"yawDegrees\": "+captureYaw.ToString("F3",System.Globalization.CultureInfo.InvariantCulture)+",\n  \"portalNormalYawDegrees\": 90,\n  \"referenceVerticalFov\": 60\n}\n");
             var zip=package+".zip";
             if (File.Exists(zip)) File.Delete(zip);
