@@ -101,6 +101,17 @@ make test   # 検証スクリプトのユニットテスト
 
 `check` は問題があれば終了コード 1、注意事項だけなら終了コード 0 を返します。
 
+## HLS同時受信の負荷試験
+
+講演9本＋ポータル8本を、それぞれ独立したffmpegで受信する試験です。Pythonの標準ライブラリと、PATHにあるffmpegを使います。受信先はGit管理外の `cvxr/castle-of-ideas/streaming.local.json` の `receiverUrl` / `portalReceiverUrl` から読みます。
+
+```bash
+.venv/bin/python cvxr/castle-of-ideas/tools/ffmpeg-hls-load-test.py \
+  --program-clients 9 --portal-clients 8 --seconds 180
+```
+
+3分で自動終了します。Ctrl+Cまたは開始時に表示するPIDへSIGINT/SIGTERMを送ると、今回起動したffmpegだけを停止し、集計を残します。実行中のPIDは `cvxr/castle-of-ideas/build/ffmpeg-hls-load-test/run.pid`、結果は同じ場所の `summary.json` に保存します。URL・生ログ・映像は保存しません。最初の20秒を除いて集計し、再多重化したメディア量と各受信機の映像時刻の進み方を測ります。HTTP/TLSの総通信量、デコード、CVR実機、多拠点の回線差は測りません。
+
 ## ライセンスと配布
 
 ライセンス、第三者素材の扱い、完成物の配布先は未決定です。決定するまでは、このリポジトリの内容を外部配布可能とはみなさないでください。素材ごとの出典と利用条件は、同じディレクトリの README またはメタデータに記録します。
