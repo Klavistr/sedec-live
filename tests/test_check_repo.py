@@ -47,6 +47,16 @@ class RepositoryChecksTest(unittest.TestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].level, "ERROR")
 
+    def test_private_files_are_excluded_from_checks(self):
+        private = self.root / ".private"
+        private.mkdir()
+        (private / "operator-notes.json").write_text("not JSON", encoding="utf-8")
+        with (private / "backup.bundle").open("wb") as file:
+            file.truncate(LARGE_FILE_BYTES + 1)
+
+        self.assertEqual(check_json_files(self.root), [])
+        self.assertEqual(check_large_files(self.root), [])
+
     def test_overlay_check_requires_index_html(self):
         overlay = self.root / "assets" / "overlays" / "lower-third"
         overlay.mkdir(parents=True)

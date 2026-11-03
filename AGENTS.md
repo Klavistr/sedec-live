@@ -2,7 +2,7 @@
 
 ## Project context
 
-This repository contains production assets and helper tools used on the local streaming workstation for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in `operator documentation`; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Network-delivered services and browser-source implementations are outside this repository's scope.
+This repository contains production assets and helper tools used on the local streaming workstation for SEDEC livestreaming and recording. Keep event-wide operations and tone-of-voice documentation in private operator documentation; keep OBS configuration, media, local fallback screens, CVXR, and 3D production assets here. Network-delivered services and browser-source implementations are outside this repository's scope.
 
 ## Before changing files
 
@@ -26,6 +26,7 @@ The helper tooling must continue to work with Python 3.11+ and the standard libr
 - Refer to deployed browser sources through stable URLs designated by the event operators, not GitHub raw URLs or sibling-repository paths.
 - Use repository-relative paths for OBS media references whenever OBS permits it.
 - Do not commit stream keys, credentials, personal data, caches, or machine-specific absolute paths.
+- Keep operator-specific infrastructure, hosting contracts, integration repository identities, and live capacity measurements in the ignored `.private/` directory. Public documentation should describe generic interfaces and reproducible procedures. Do not stage or package `.private/`, including its history backups.
 - Do not add large binaries until Git LFS is installed and the tracking policy is documented.
 - Keep editable sources; avoid committing reproducible renders, caches, and build directories.
 - Record third-party asset origin, author, license, and modifications next to the asset.

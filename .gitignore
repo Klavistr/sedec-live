@@ -1,5 +1,3 @@
-# Private operator notes and local backups
-/.private/
 # macOS and editors
 .DS_Store
 ._*
@@ -8,6 +6,7 @@
 *.swp
 
 # Local configuration and secrets
+/.private/
 .env
 .env.*
 !.env.example

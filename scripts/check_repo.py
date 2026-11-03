@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +26,7 @@ REQUIRED_DIRECTORIES = (
 )
 IGNORED_DIRECTORY_NAMES = {
     ".git",
+    ".private",
     ".venv",
     "Library",
     "Logs",
@@ -48,11 +50,12 @@ class Finding:
 
 def iter_project_files(root: Path):
     """Yield regular project files while skipping generated directories."""
-    for path in root.rglob("*"):
-        if any(part in IGNORED_DIRECTORY_NAMES for part in path.parts):
-            continue
-        if path.is_file() and not path.is_symlink():
-            yield path
+    for directory, directories, filenames in os.walk(root):
+        directories[:] = [name for name in directories if name not in IGNORED_DIRECTORY_NAMES]
+        for name in filenames:
+            path = Path(directory) / name
+            if path.is_file() and not path.is_symlink():
+                yield path
 
 
 def check_required_directories(root: Path) -> list[Finding]:
