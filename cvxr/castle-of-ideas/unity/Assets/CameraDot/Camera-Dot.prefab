@@ -889,7 +889,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   type: 1
-  objectId:
+  objectId: ee2aaabf-c43a-48ae-a0ba-e1ac18c03d66
   randomNum: 12345678
   unityVersion: 2022.3.58f1
   cckVersion: 4.0.1

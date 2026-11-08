@@ -170,6 +170,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8616686492335283537, guid: 3aad0ad175a65449c8e7ae779ae4202c, type: 3}
+      propertyPath: objectId
+      value: ee2aaabf-c43a-48ae-a0ba-e1ac18c03d66
+      objectReference: {fileID: 0}
     - target: {fileID: 8712378351538461502, guid: 3aad0ad175a65449c8e7ae779ae4202c, type: 3}
       propertyPath: m_Name
       value: Camera-Dot

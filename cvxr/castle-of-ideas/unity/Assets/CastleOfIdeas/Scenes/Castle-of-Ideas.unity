@@ -26238,7 +26238,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   type: 2
-  objectId:
+  objectId: 21b7406e-c6f8-4930-910d-27500419a7d1
   randomNum:
   unityVersion: 2022.3.58f1
   cckVersion: 4.0.1
@@ -88596,4 +88596,3 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 47758457}
-  - {fileID: 67204573}

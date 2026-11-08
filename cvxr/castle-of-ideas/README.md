@@ -10,7 +10,9 @@
 
 ## 現在の成果物
 
-ベータ版（0.5.x）として、編集可能なソース、家具、写真素材、配信の自動再生を整えています。旧世代の保存ビルドは0.4.xとして区別します。受信URL入りのWindows PreviewはGitHub Draft Releaseで扱い、ChilloutVRへのアップロードは保留しています。
+ベータ版（0.5.x）として、編集可能なソース、家具、写真素材、配信の自動再生を整えています。旧世代の保存ビルドは0.4.xとして区別します。受信URL入りのWindows PreviewはGitHub Draft Releaseで扱います。0.5.4の立体音響版はChilloutVRへ初回非公開アップロード済みです。
+
+更新時はシーンの `CVR Asset Info.objectId` を維持して同じワールドを上書きします。`Build Complete CCK World` も既存IDを引き継ぎます。今回の運用では配信内容に合わせてSuggestiveとExplicitを設定しています。タグはCCKの登録メタデータなので、更新時にも確認してください。受信URLを失効させる場合は配信サービス側で無効化します。ワールドの上書きだけでは、取得済みの旧版に入ったURLは失効しません。
 
 - `design/layout.json`: メートル単位の寸法、家具列、色スロット
 - `blender/generate_world.py`: Blender シーンを再生成するソース
@@ -152,7 +154,8 @@ HTTPSの `.m3u8` 受信URLはローカル設定からビルド用コピーへだ
 - [x] `CVR Interactable` による着席
 - [ ] ドア、照明の操作
 - [x] CCK Local Test用Windows Previewの生成
-- [ ] 非公開アップロードと複数人同期確認
+- [x] 初回非公開アップロード
+- [ ] オンライン版の複数人同期・Windows実機受信確認
 - [ ] ライトベイク、Occlusion Culling、LTCGI
 
 配信の実 URL、エレベーター扉、照明操作など、運用や同期方式に依存する部分は引き続き Unity 側で仕上げます。
