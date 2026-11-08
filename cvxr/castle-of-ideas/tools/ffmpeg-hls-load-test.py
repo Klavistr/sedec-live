@@ -22,6 +22,31 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def rehearsal_load(plan):
+    """Translate actual/target viewers into the missing independent feed requests."""
+    result = {}
+    for stage in ('target', 'actual'):
+        group = plan.get(stage) if isinstance(plan, dict) else None
+        if not isinstance(group, dict):
+            raise ValueError('Plan needs target and actual objects.')
+        counts = {}
+        for key in ('dualFeedClients', 'programOnlyClients'):
+            value = group.get(key)
+            if type(value) is not int or not 0 <= value <= 25:
+                raise ValueError('Viewer counts must be integers from 0 to 25.')
+            counts[key] = value
+        result[stage] = {
+            **counts,
+            'program': counts['dualFeedClients'] + counts['programOnlyClients'],
+            'portal': counts['dualFeedClients'],
+        }
+    result['synthetic'] = {
+        role: max(0, result['target'][role] - result['actual'][role])
+        for role in ('program', 'portal')
+    }
+    return result
+
+
 def error_category(line):
     """Return a fixed label only; FFmpeg diagnostics frequently contain URLs."""
     line = re.sub(r'https?://\S+', '[url]', line)
@@ -97,32 +122,72 @@ class Receiver:
                     'errorLogLines': dict(self.errors), 'returnCode': self.process.poll()}
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--program-clients', type=int, default=9)
-    parser.add_argument('--portal-clients', type=int, default=8)
+    parser.add_argument('--program-clients', type=int)
+    parser.add_argument('--portal-clients', type=int)
+    parser.add_argument('--rehearsal-plan', type=Path,
+                        help='Local JSON with target/actual dualFeedClients and programOnlyClients.')
+    parser.add_argument('--dry-run', action='store_true', help='Show counts without network or files.')
     parser.add_argument('--seconds', type=float, default=180)
     parser.add_argument('--warmup-seconds', type=float, default=20)
+    parser.add_argument('--max-output-gb', type=float, default=3,
+                        help='Stop after this many decimal GB of discarded remux output (default: 3).')
     parser.add_argument('--report-dir', type=Path, default=ROOT/'build/ffmpeg-hls-load-test')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    plan = None
+    if args.rehearsal_plan:
+        if args.program_clients is not None or args.portal_clients is not None:
+            parser.error('Use either --rehearsal-plan or explicit receiver counts, not both.')
+        try:
+            plan = rehearsal_load(json.loads(args.rehearsal_plan.read_text()))
+        except (OSError, ValueError):
+            parser.error('Invalid rehearsal plan: provide target/actual integer viewer counts (0–25).')
+        args.program_clients = plan['synthetic']['program']
+        args.portal_clients = plan['synthetic']['portal']
+    else:
+        args.program_clients = 9 if args.program_clients is None else args.program_clients
+        args.portal_clients = 8 if args.portal_clients is None else args.portal_clients
     if not (0 <= args.program_clients <= 25 and 0 <= args.portal_clients <= 25
-            and 1 <= args.program_clients+args.portal_clients <= 25
-            and 5 <= args.seconds <= 600 and 0 <= args.warmup_seconds < args.seconds):
-        parser.error('Use 1–25 total receivers, 5–600 seconds, and a shorter warmup.')
+            and 0 <= args.program_clients+args.portal_clients <= 25
+            and 5 <= args.seconds <= 7200 and 0 <= args.warmup_seconds < args.seconds
+            and .001 <= args.max_output_gb <= 50):
+        parser.error('Use 0–25 receivers, 5–7200 seconds, a shorter warmup, and 0.001–50 GB.')
+    if plan:
+        for stage in ('target', 'actual'):
+            row = plan[stage]
+            print(f'{stage}: dual-feed={row["dualFeedClients"]}, program-only={row["programOnlyClients"]}; '
+                  f'program={row["program"]}, portal={row["portal"]}', flush=True)
+    print(f'Synthetic receivers: program={args.program_clients}, portal={args.portal_clients}', flush=True)
+    if args.dry_run or not (args.program_clients + args.portal_clients):
+        print('No receivers started.' if args.dry_run else 'Target already covered; no receivers needed.', flush=True)
+        return 0
     ffmpeg = shutil.which('ffmpeg')
     if not ffmpeg:
         parser.error('ffmpeg is not installed.')
-    config = json.loads((ROOT/'streaming.local.json').read_text())
+    try:
+        config = json.loads((ROOT/'streaming.local.json').read_text())
+        if not isinstance(config, dict):
+            raise ValueError()
+    except (OSError, ValueError):
+        parser.error('Cannot read streaming.local.json. Configure the local receiver URLs first.')
     roles = [('program', args.program_clients, config.get('receiverUrl')),
              ('portal', args.portal_clients, config.get('portalReceiverUrl'))]
     if any(count and (not url or not url.startswith('https://')) for _, count, url in roles):
         parser.error('Configure both requested HTTPS HLS receiver URLs in streaming.local.json.')
     args.report_dir.mkdir(parents=True, exist_ok=True)
     pid_file = args.report_dir/'run.pid'
-    pid_file.write_text(str(os.getpid())+'\n')
+    try:
+        with pid_file.open('x') as file:
+            file.write(str(os.getpid())+'\n')
+    except FileExistsError:
+        parser.error('run.pid already exists in this report directory. Stop the existing run first; '
+                     'remove a stale PID file only after confirming that run has stopped.')
     stop = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: stop.set())
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
+    if hasattr(signal, 'SIGHUP'):
+        signal.signal(signal.SIGHUP, lambda *_: stop.set())
     start = time.monotonic()
     utc = datetime.datetime.now(datetime.timezone.utc).isoformat()
     receivers, samples = [], []
@@ -150,16 +215,19 @@ def main():
                 baseline_media = {(r['role'], r['number']): r['mediaSeconds'] for r in rows}
             if now >= next_sample:
                 active = collections.Counter(r['role'] for r in rows if r['returnCode'] is None)
+                errors = sum(sum(r['errorLogLines'].values()) for r in rows)
+                stalled = sum(r['secondsSinceMediaAdvance'] >= 15 for r in rows) if baseline_time else 0
                 samples.append({'elapsedSeconds': round(elapsed, 3), 'bytes': total, 'receivers': rows})
                 mbps = (total-baseline_bytes)*8/(now-baseline_time)/1e6 if baseline_time and now>baseline_time else None
                 suffix = f'{mbps:.2f} Mbps media' if mbps is not None else 'warming up'
-                print(f'{elapsed:6.1f}s active program={active["program"]} portal={active["portal"]}; {suffix}', flush=True)
+                print(f'{elapsed:6.1f}s active program={active["program"]} portal={active["portal"]}; '
+                      f'{suffix}; error lines={errors}; stalled>=15s={stalled}', flush=True)
                 next_sample = now+10
             if any(row['returnCode'] is not None for row in rows):
                 reason = 'receiver_exited'
                 break
-            if total >= 3_000_000_000:
-                reason = '3GB_output_limit'
+            if total >= args.max_output_gb * 1_000_000_000:
+                reason = 'output_limit'
                 break
             if elapsed >= args.seconds:
                 break
@@ -202,6 +270,8 @@ def main():
         total = sum(row['bytes'] for row in final)
         report = {'startedAtUtc': utc, 'stopReason': reason,
                   'requested': {'program': args.program_clients, 'portal': args.portal_clients},
+                  'rehearsal': plan,
+                  'limits': {'seconds': args.seconds, 'maxOutputGB': args.max_output_gb},
                   'elapsedSeconds': round(end-start, 3), 'warmupSeconds': args.warmup_seconds,
                   'measurement': 'FFmpeg remuxed MPEG-TS output bytes; excludes HTTP/TLS overhead; no decode',
                   'bytes': total,

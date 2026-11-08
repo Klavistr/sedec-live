@@ -108,6 +108,8 @@ make test   # 検証スクリプトのユニットテスト
 
 測定方法と制限は[HLS同時受信の負荷試験](cvxr/castle-of-ideas/docs/hls-load-testing.md)を参照してください。実環境の測定結果は `.private/` に保管します。
 
+実参加者との差分だけを補う場合は、同ガイドの `--rehearsal-plan` を使います。`--dry-run` で通信せず受信数を確認でき、オーナー・会場カメラと講演だけの端末を区別して計算します。
+
 講演9本＋ポータル8本を、それぞれ独立したffmpegで受信する試験です。Pythonの標準ライブラリと、PATHにあるffmpegを使います。受信先はGit管理外の `cvxr/castle-of-ideas/streaming.local.json` の `receiverUrl` / `portalReceiverUrl` から読みます。
 
 ```bash
